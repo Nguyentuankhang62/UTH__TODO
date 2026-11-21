@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">UTH Todo</string>
+    <string name="app_tagline">Việc học, việc nhà — gọn gàng mỗi ngày</string>
+    <string name="app_version_label">Phiên bản 2.1.0</string>
+    <string name="action_skip">Bỏ qua</string>
+    <string name="action_continue">Tiếp tục</string>
+    <string name="action_start_now">Bắt đầu ngay</string>
+    <string name="action_replay_onboarding">Xem lại Onboarding</string>
+    <string name="sample_reminder_text">Ôn bài Toán lúc 19:00</string>
+    <string name="category_study">Học tập</string>
+    <string name="category_life">Cuộc sống</string>
+    <string name="home_preview_title">Sẵn sàng quản lý công việc</string>
+    <string name="home_preview_subtitle">Luồng Navigation và mô hình OOP cho UTH Todo đã sẵn sàng.</string>
+</resources>

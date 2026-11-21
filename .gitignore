@@ -1,0 +1,23 @@
+# Ignore local reference PDF and IDE/build artifacts
+UTH-Mobile.pdf
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+bin/
+gen/
+out/
+.gradle/
+build/
+*/build/
+*/.gradle/
+local.properties
+.idea/
+*.iml
+.kotlin/
+captures/
+.cxx/
+.navigation/
+.DS_Store
+Thumbs.db
