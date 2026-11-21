@@ -24,6 +24,7 @@ import com.uth.uthtodo.ui.screens.ConfirmResetScreen
 import com.uth.uthtodo.ui.screens.CreateNewPasswordScreen
 import com.uth.uthtodo.ui.screens.FirebaseServicesScreen
 import com.uth.uthtodo.ui.screens.ForgetPasswordScreen
+import com.uth.uthtodo.ui.screens.HomeFlowScreen
 import com.uth.uthtodo.ui.screens.HomePreviewScreen
 import com.uth.uthtodo.ui.screens.LoginScreen
 import com.uth.uthtodo.ui.screens.OnboardingScreen
@@ -44,6 +45,7 @@ sealed class AppRoute(val route: String) {
     data object AuthHome : AppRoute("auth_home")
     data object Profile : AppRoute("profile")
     data object FirebaseServices : AppRoute("firebase_services")
+    data object HomeFlow : AppRoute("home_flow")
     data object ForgetPassword : AppRoute("forget_password")
 
     data object VerifyCode : AppRoute("verify_code/{email}") {
@@ -120,6 +122,9 @@ fun AppNavGraph(
                 },
                 onOpenFirebaseServices = {
                     navController.navigate(AppRoute.FirebaseServices.route)
+                },
+                onOpenHomeFlow = {
+                    navController.navigate(AppRoute.HomeFlow.route)
                 },
                 onReplayOnboarding = {
                     navController.navigate(AppRoute.Onboarding.route) {
@@ -208,6 +213,22 @@ fun AppNavGraph(
 
         composable(AppRoute.FirebaseServices.route) {
             FirebaseServicesScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(AppRoute.HomeFlow.route) {
+            val currentUser = authUiState.currentUser
+            HomeFlowScreen(
+                displayName = currentUser?.displayName ?: "bạn",
+                avatarText = currentUser?.initials() ?: "K",
+                onProfileClick = {
+                    if (currentUser != null) {
+                        navController.navigate(AppRoute.Profile.route)
+                    } else {
+                        navController.navigate(AppRoute.Login.route)
+                    }
+                },
                 onBack = { navController.popBackStack() }
             )
         }
