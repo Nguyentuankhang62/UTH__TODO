@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,6 +47,7 @@ import com.uth.uthtodo.ui.theme.TextSecondary
 @Composable
 fun HomePreviewScreen(
     sampleTasks: List<TaskItem>,
+    onOpenDataFlow: () -> Unit,
     onReplayOnboarding: () -> Unit
 ) {
     Column(
@@ -98,6 +100,22 @@ fun HomePreviewScreen(
         }
 
         Spacer(modifier = Modifier.height(12.dp))
+
+        OutlinedButton(
+            onClick = onOpenDataFlow,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Text(
+                text = stringResource(id = R.string.action_open_data_flow),
+                color = PrimaryBlue,
+                style = MaterialTheme.typography.labelLarge
+            )
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
 
         Button(
             onClick = onReplayOnboarding,

@@ -11,4 +11,19 @@
     <string name="category_life">Cuộc sống</string>
     <string name="home_preview_title">Sẵn sàng quản lý công việc</string>
     <string name="home_preview_subtitle">Luồng Navigation và mô hình OOP cho UTH Todo đã sẵn sàng.</string>
+    <string name="action_open_data_flow">Bài 2: Data Flow Navigation (Quên mật khẩu)</string>
+    <string name="brand_smart_tasks">SmartTasks</string>
+    <string name="forget_password_title">Forget Password?</string>
+    <string name="forget_password_subtitle">Enter your Email, we will send you a verification code.</string>
+    <string name="hint_your_email">Your Email</string>
+    <string name="verify_code_title">Verify Code</string>
+    <string name="verify_code_subtitle">Enter the code we just sent you on your registered Email</string>
+    <string name="create_password_title">Create new password</string>
+    <string name="create_password_subtitle">Your new password must be different from previously used password</string>
+    <string name="hint_password">Password</string>
+    <string name="hint_confirm_password">Confirm Password</string>
+    <string name="confirm_title">Confirm</string>
+    <string name="confirm_subtitle">We are here to help you!</string>
+    <string name="action_next">Next</string>
+    <string name="action_submit">Submit</string>
 </resources>
