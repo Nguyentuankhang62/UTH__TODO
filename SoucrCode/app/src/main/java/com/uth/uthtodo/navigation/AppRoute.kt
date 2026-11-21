@@ -22,6 +22,7 @@ import com.uth.uthtodo.model.PasswordResetFlowData
 import com.uth.uthtodo.ui.screens.AuthHomeScreen
 import com.uth.uthtodo.ui.screens.ConfirmResetScreen
 import com.uth.uthtodo.ui.screens.CreateNewPasswordScreen
+import com.uth.uthtodo.ui.screens.FirebaseServicesScreen
 import com.uth.uthtodo.ui.screens.ForgetPasswordScreen
 import com.uth.uthtodo.ui.screens.HomePreviewScreen
 import com.uth.uthtodo.ui.screens.LoginScreen
@@ -42,6 +43,7 @@ sealed class AppRoute(val route: String) {
     data object Login : AppRoute("login")
     data object AuthHome : AppRoute("auth_home")
     data object Profile : AppRoute("profile")
+    data object FirebaseServices : AppRoute("firebase_services")
     data object ForgetPassword : AppRoute("forget_password")
 
     data object VerifyCode : AppRoute("verify_code/{email}") {
@@ -115,6 +117,9 @@ fun AppNavGraph(
                         AppRoute.Login.route
                     }
                     navController.navigate(destination)
+                },
+                onOpenFirebaseServices = {
+                    navController.navigate(AppRoute.FirebaseServices.route)
                 },
                 onReplayOnboarding = {
                     navController.navigate(AppRoute.Onboarding.route) {
@@ -198,6 +203,12 @@ fun AppNavGraph(
                         popUpTo(AppRoute.AuthHome.route) { inclusive = true }
                     }
                 }
+            )
+        }
+
+        composable(AppRoute.FirebaseServices.route) {
+            FirebaseServicesScreen(
+                onBack = { navController.popBackStack() }
             )
         }
 

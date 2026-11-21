@@ -13,6 +13,7 @@
     <string name="home_preview_subtitle">Luồng Navigation và mô hình OOP cho UTH Todo đã sẵn sàng.</string>
     <string name="action_open_data_flow">Bài 2: Data Flow Navigation (Quên mật khẩu)</string>
     <string name="action_open_firebase_auth">Bài 3: Firebase Authentication (Đăng nhập)</string>
+    <string name="action_open_firebase_services">Bài 4: Tích hợp dịch vụ Firebase</string>
     <string name="brand_smart_tasks">SmartTasks</string>
     <string name="forget_password_title">Forget Password?</string>
     <string name="forget_password_subtitle">Enter your Email, we will send you a verification code.</string>
