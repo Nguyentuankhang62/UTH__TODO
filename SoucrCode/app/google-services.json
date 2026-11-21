@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "143049015933",
+    "project_id": "uth-3845a",
+    "storage_bucket": "uth-3845a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:143049015933:android:46d23719e8ae2323d96714",
+        "android_client_info": {
+          "package_name": "com.uth.uthtodo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBgJMGsVIZQYqRtpNNJ4qbUqstOvRTT03Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
