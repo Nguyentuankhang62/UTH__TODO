@@ -3,7 +3,9 @@ package com.uth.uthtodo.navigation
 import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -11,13 +13,20 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.uth.uthtodo.auth.AuthProviderType
+import com.uth.uthtodo.auth.AuthResult
+import com.uth.uthtodo.auth.AuthUiState
+import com.uth.uthtodo.auth.FirebaseAuthManager
 import com.uth.uthtodo.model.OnboardingRepository
 import com.uth.uthtodo.model.PasswordResetFlowData
+import com.uth.uthtodo.ui.screens.AuthHomeScreen
 import com.uth.uthtodo.ui.screens.ConfirmResetScreen
 import com.uth.uthtodo.ui.screens.CreateNewPasswordScreen
 import com.uth.uthtodo.ui.screens.ForgetPasswordScreen
 import com.uth.uthtodo.ui.screens.HomePreviewScreen
+import com.uth.uthtodo.ui.screens.LoginScreen
 import com.uth.uthtodo.ui.screens.OnboardingScreen
+import com.uth.uthtodo.ui.screens.ProfileScreen
 import com.uth.uthtodo.ui.screens.SplashScreen
 import com.uth.uthtodo.ui.screens.VerifyCodeScreen
 
@@ -30,6 +39,9 @@ sealed class AppRoute(val route: String) {
     data object Splash : AppRoute("splash")
     data object Onboarding : AppRoute("onboarding")
     data object HomePreview : AppRoute("home_preview")
+    data object Login : AppRoute("login")
+    data object AuthHome : AppRoute("auth_home")
+    data object Profile : AppRoute("profile")
     data object ForgetPassword : AppRoute("forget_password")
 
     data object VerifyCode : AppRoute("verify_code/{email}") {
@@ -58,6 +70,12 @@ fun AppNavGraph(
     val repository = remember { OnboardingRepository() }
     val steps = remember(repository) { repository.getSteps() }
     val sampleTasks = remember(repository) { repository.getSampleTasks() }
+    val authManager = remember { FirebaseAuthManager() }
+    var authUiState by remember {
+        mutableStateOf(
+            AuthUiState(currentUser = authManager.getCurrentUserProfile())
+        )
+    }
 
     NavHost(
         navController = navController,
@@ -90,9 +108,94 @@ fun AppNavGraph(
                 onOpenDataFlow = {
                     navController.navigate(AppRoute.ForgetPassword.route)
                 },
+                onOpenFirebaseAuth = {
+                    val destination = if (authUiState.currentUser != null) {
+                        AppRoute.AuthHome.route
+                    } else {
+                        AppRoute.Login.route
+                    }
+                    navController.navigate(destination)
+                },
                 onReplayOnboarding = {
                     navController.navigate(AppRoute.Onboarding.route) {
                         popUpTo(AppRoute.HomePreview.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(AppRoute.Login.route) {
+            val handleAuthResult: (AuthResult) -> Unit = { result ->
+                when (result) {
+                    is AuthResult.Success -> {
+                        authUiState = AuthUiState(
+                            isLoading = false,
+                            currentUser = result.user,
+                            providerType = result.provider,
+                            successMessage = result.message
+                        )
+                        navController.navigate(AppRoute.AuthHome.route) {
+                            popUpTo(AppRoute.Login.route) { inclusive = true }
+                        }
+                    }
+
+                    is AuthResult.Error -> {
+                        authUiState = authUiState.copy(
+                            isLoading = false,
+                            errorMessage = result.message,
+                            successMessage = null
+                        )
+                    }
+                }
+            }
+
+            LoginScreen(
+                uiState = authUiState,
+                onEmailSignIn = { email, password ->
+                    authUiState = authUiState.copy(isLoading = true, errorMessage = null)
+                    authManager.signInWithEmail(email, password, handleAuthResult)
+                },
+                onEmailRegister = { email, password ->
+                    authUiState = authUiState.copy(isLoading = true, errorMessage = null)
+                    authManager.registerWithEmail(email, password, handleAuthResult)
+                },
+                onGoogleSignIn = {
+                    authUiState = authUiState.copy(
+                        isLoading = false,
+                        errorMessage = "Cần liên kết SHA-1 và bật Google Sign-In trên Firebase Console để dùng trên thiết bị."
+                    )
+                },
+                onGuestSignIn = {
+                    authUiState = authUiState.copy(isLoading = true, errorMessage = null)
+                    authManager.signInAsGuest(handleAuthResult)
+                }
+            )
+        }
+
+        composable(AppRoute.AuthHome.route) {
+            val currentUser = authUiState.currentUser
+            if (currentUser != null) {
+                AuthHomeScreen(
+                    user = currentUser,
+                    tasks = sampleTasks,
+                    bannerMessage = authUiState.successMessage,
+                    onProfileClick = {
+                        navController.navigate(AppRoute.Profile.route)
+                    }
+                )
+            }
+        }
+
+        composable(AppRoute.Profile.route) {
+            ProfileScreen(
+                uiState = authUiState,
+                onBack = { navController.popBackStack() },
+                onSignOut = {
+                    authManager.signOut()
+                    // Xóa toàn bộ state tài khoản cũ ngay khi đăng xuất
+                    authUiState = AuthUiState(providerType = AuthProviderType.EMAIL)
+                    navController.navigate(AppRoute.Login.route) {
+                        popUpTo(AppRoute.AuthHome.route) { inclusive = true }
                     }
                 }
             )

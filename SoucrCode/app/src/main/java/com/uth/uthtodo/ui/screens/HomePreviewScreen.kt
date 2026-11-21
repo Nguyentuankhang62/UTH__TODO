@@ -48,6 +48,7 @@ import com.uth.uthtodo.ui.theme.TextSecondary
 fun HomePreviewScreen(
     sampleTasks: List<TaskItem>,
     onOpenDataFlow: () -> Unit,
+    onOpenFirebaseAuth: () -> Unit,
     onReplayOnboarding: () -> Unit
 ) {
     Column(
@@ -100,6 +101,22 @@ fun HomePreviewScreen(
         }
 
         Spacer(modifier = Modifier.height(12.dp))
+
+        OutlinedButton(
+            onClick = onOpenFirebaseAuth,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Text(
+                text = stringResource(id = R.string.action_open_firebase_auth),
+                color = PrimaryBlue,
+                style = MaterialTheme.typography.labelLarge
+            )
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
 
         OutlinedButton(
             onClick = onOpenDataFlow,
