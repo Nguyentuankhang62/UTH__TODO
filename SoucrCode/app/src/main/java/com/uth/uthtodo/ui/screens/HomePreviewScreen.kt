@@ -49,6 +49,7 @@ fun HomePreviewScreen(
     sampleTasks: List<TaskItem>,
     onOpenDataFlow: () -> Unit,
     onOpenFirebaseAuth: () -> Unit,
+    onOpenFirebaseServices: () -> Unit,
     onReplayOnboarding: () -> Unit
 ) {
     Column(
@@ -101,6 +102,22 @@ fun HomePreviewScreen(
         }
 
         Spacer(modifier = Modifier.height(12.dp))
+
+        OutlinedButton(
+            onClick = onOpenFirebaseServices,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Text(
+                text = stringResource(id = R.string.action_open_firebase_services),
+                color = PrimaryBlue,
+                style = MaterialTheme.typography.labelLarge
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
 
         OutlinedButton(
             onClick = onOpenFirebaseAuth,
