@@ -29,6 +29,7 @@ import com.uth.uthtodo.ui.screens.LoginScreen
 import com.uth.uthtodo.ui.screens.OnboardingScreen
 import com.uth.uthtodo.ui.screens.ProfileScreen
 import com.uth.uthtodo.ui.screens.SplashScreen
+import com.uth.uthtodo.ui.screens.TaskListScreen
 import com.uth.uthtodo.ui.screens.VerifyCodeScreen
 
 private const val KEY_RESULT_EMAIL = "result_email"
@@ -44,6 +45,7 @@ sealed class AppRoute(val route: String) {
     data object AuthHome : AppRoute("auth_home")
     data object Profile : AppRoute("profile")
     data object FirebaseServices : AppRoute("firebase_services")
+    data object TaskList : AppRoute("task_list")
     data object ForgetPassword : AppRoute("forget_password")
 
     data object VerifyCode : AppRoute("verify_code/{email}") {
@@ -120,6 +122,9 @@ fun AppNavGraph(
                 },
                 onOpenFirebaseServices = {
                     navController.navigate(AppRoute.FirebaseServices.route)
+                },
+                onOpenTaskList = {
+                    navController.navigate(AppRoute.TaskList.route)
                 },
                 onReplayOnboarding = {
                     navController.navigate(AppRoute.Onboarding.route) {
@@ -208,6 +213,13 @@ fun AppNavGraph(
 
         composable(AppRoute.FirebaseServices.route) {
             FirebaseServicesScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(AppRoute.TaskList.route) {
+            TaskListScreen(
+                onOpenHome = { navController.popBackStack() },
                 onBack = { navController.popBackStack() }
             )
         }

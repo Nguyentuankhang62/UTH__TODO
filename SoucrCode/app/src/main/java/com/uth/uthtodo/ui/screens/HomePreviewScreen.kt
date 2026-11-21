@@ -50,6 +50,7 @@ fun HomePreviewScreen(
     onOpenDataFlow: () -> Unit,
     onOpenFirebaseAuth: () -> Unit,
     onOpenFirebaseServices: () -> Unit,
+    onOpenTaskList: () -> Unit,
     onReplayOnboarding: () -> Unit
 ) {
     Column(
@@ -99,73 +100,84 @@ fun HomePreviewScreen(
             items(sampleTasks, key = { it.id }) { task ->
                 TaskOopCard(task = task)
             }
-        }
 
-        Spacer(modifier = Modifier.height(12.dp))
+            item {
+                Spacer(modifier = Modifier.height(6.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(
+                        onClick = onOpenTaskList,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Text(
+                            text = stringResource(id = R.string.action_open_list_flow),
+                            color = PrimaryBlue,
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
 
-        OutlinedButton(
-            onClick = onOpenFirebaseServices,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Text(
-                text = stringResource(id = R.string.action_open_firebase_services),
-                color = PrimaryBlue,
-                style = MaterialTheme.typography.labelLarge
-            )
-        }
+                    OutlinedButton(
+                        onClick = onOpenFirebaseServices,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Text(
+                            text = stringResource(id = R.string.action_open_firebase_services),
+                            color = PrimaryBlue,
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
 
-        Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedButton(
+                        onClick = onOpenFirebaseAuth,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Text(
+                            text = stringResource(id = R.string.action_open_firebase_auth),
+                            color = PrimaryBlue,
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
 
-        OutlinedButton(
-            onClick = onOpenFirebaseAuth,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Text(
-                text = stringResource(id = R.string.action_open_firebase_auth),
-                color = PrimaryBlue,
-                style = MaterialTheme.typography.labelLarge
-            )
-        }
+                    OutlinedButton(
+                        onClick = onOpenDataFlow,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Text(
+                            text = stringResource(id = R.string.action_open_data_flow),
+                            color = PrimaryBlue,
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
 
-        Spacer(modifier = Modifier.height(10.dp))
-
-        OutlinedButton(
-            onClick = onOpenDataFlow,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Text(
-                text = stringResource(id = R.string.action_open_data_flow),
-                color = PrimaryBlue,
-                style = MaterialTheme.typography.labelLarge
-            )
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        Button(
-            onClick = onReplayOnboarding,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = PrimaryBlue,
-                contentColor = Color.White
-            )
-        ) {
-            Text(
-                text = stringResource(id = R.string.action_replay_onboarding),
-                style = MaterialTheme.typography.labelLarge
-            )
+                    Button(
+                        onClick = onReplayOnboarding,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PrimaryBlue,
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text(
+                            text = stringResource(id = R.string.action_replay_onboarding),
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
+                }
+            }
         }
     }
 }
