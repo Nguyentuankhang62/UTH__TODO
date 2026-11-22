@@ -27,6 +27,7 @@ import com.uth.uthtodo.ui.screens.ForgetPasswordScreen
 import com.uth.uthtodo.ui.screens.HomeFlowScreen
 import com.uth.uthtodo.ui.screens.HomePreviewScreen
 import com.uth.uthtodo.ui.screens.LoginScreen
+import com.uth.uthtodo.ui.screens.NotificationsScreen
 import com.uth.uthtodo.ui.screens.OnboardingScreen
 import com.uth.uthtodo.ui.screens.ProfileScreen
 import com.uth.uthtodo.ui.screens.SplashScreen
@@ -48,6 +49,7 @@ sealed class AppRoute(val route: String) {
     data object FirebaseServices : AppRoute("firebase_services")
     data object HomeFlow : AppRoute("home_flow")
     data object TaskList : AppRoute("task_list")
+    data object Notifications : AppRoute("notifications")
     data object ForgetPassword : AppRoute("forget_password")
 
     data object VerifyCode : AppRoute("verify_code/{email}") {
@@ -130,6 +132,9 @@ fun AppNavGraph(
                 },
                 onOpenTaskList = {
                     navController.navigate(AppRoute.TaskList.route)
+                },
+                onOpenNotifications = {
+                    navController.navigate(AppRoute.Notifications.route)
                 },
                 onReplayOnboarding = {
                     navController.navigate(AppRoute.Onboarding.route) {
@@ -242,6 +247,22 @@ fun AppNavGraph(
             TaskListScreen(
                 onOpenHome = {
                     navController.navigate(AppRoute.HomeFlow.route) {
+                        launchSingleTop = true
+                    }
+                },
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(AppRoute.Notifications.route) {
+            NotificationsScreen(
+                onOpenHome = {
+                    navController.navigate(AppRoute.HomeFlow.route) {
+                        launchSingleTop = true
+                    }
+                },
+                onOpenTaskList = {
+                    navController.navigate(AppRoute.TaskList.route) {
                         launchSingleTop = true
                     }
                 },
