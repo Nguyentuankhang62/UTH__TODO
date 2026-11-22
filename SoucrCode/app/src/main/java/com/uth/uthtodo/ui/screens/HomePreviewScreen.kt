@@ -50,6 +50,7 @@ fun HomePreviewScreen(
     onOpenDataFlow: () -> Unit,
     onOpenFirebaseAuth: () -> Unit,
     onOpenFirebaseServices: () -> Unit,
+    onOpenHomeFlow: () -> Unit,
     onOpenTaskList: () -> Unit,
     onReplayOnboarding: () -> Unit
 ) {
@@ -113,6 +114,20 @@ fun HomePreviewScreen(
                     ) {
                         Text(
                             text = stringResource(id = R.string.action_open_list_flow),
+                            color = PrimaryBlue,
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
+
+                    OutlinedButton(
+                        onClick = onOpenHomeFlow,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Text(
+                            text = stringResource(id = R.string.action_open_home_flow),
                             color = PrimaryBlue,
                             style = MaterialTheme.typography.labelLarge
                         )
