@@ -52,6 +52,7 @@ fun HomePreviewScreen(
     onOpenFirebaseServices: () -> Unit,
     onOpenHomeFlow: () -> Unit,
     onOpenTaskList: () -> Unit,
+    onOpenNotifications: () -> Unit,
     onReplayOnboarding: () -> Unit
 ) {
     Column(
@@ -105,6 +106,20 @@ fun HomePreviewScreen(
             item {
                 Spacer(modifier = Modifier.height(6.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(
+                        onClick = onOpenNotifications,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Text(
+                            text = stringResource(id = R.string.action_open_notifications_mvvm),
+                            color = PrimaryBlue,
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
+
                     OutlinedButton(
                         onClick = onOpenTaskList,
                         modifier = Modifier
