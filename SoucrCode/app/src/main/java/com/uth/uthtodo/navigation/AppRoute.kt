@@ -31,6 +31,7 @@ import com.uth.uthtodo.ui.screens.NotificationsScreen
 import com.uth.uthtodo.ui.screens.OnboardingScreen
 import com.uth.uthtodo.ui.screens.ProfileScreen
 import com.uth.uthtodo.ui.screens.SplashScreen
+import com.uth.uthtodo.ui.screens.TaskDetailScreen
 import com.uth.uthtodo.ui.screens.TaskListScreen
 import com.uth.uthtodo.ui.screens.VerifyCodeScreen
 
@@ -50,6 +51,10 @@ sealed class AppRoute(val route: String) {
     data object HomeFlow : AppRoute("home_flow")
     data object TaskList : AppRoute("task_list")
     data object Notifications : AppRoute("notifications")
+    data object TaskDetail : AppRoute("task_detail/{taskId}") {
+        // Tạo route mở chi tiết công việc theo mã id
+        fun createRoute(taskId: Long): String = "task_detail/$taskId"
+    }
     data object ForgetPassword : AppRoute("forget_password")
 
     data object VerifyCode : AppRoute("verify_code/{email}") {
@@ -135,6 +140,9 @@ fun AppNavGraph(
                 },
                 onOpenNotifications = {
                     navController.navigate(AppRoute.Notifications.route)
+                },
+                onOpenTaskDetail = {
+                    navController.navigate(AppRoute.TaskDetail.createRoute(2L))
                 },
                 onReplayOnboarding = {
                     navController.navigate(AppRoute.Onboarding.route) {
@@ -266,6 +274,17 @@ fun AppNavGraph(
                         launchSingleTop = true
                     }
                 },
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = AppRoute.TaskDetail.route,
+            arguments = listOf(navArgument("taskId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val taskId = backStackEntry.arguments?.getLong("taskId") ?: 2L
+            TaskDetailScreen(
+                taskId = taskId,
                 onBack = { navController.popBackStack() }
             )
         }
