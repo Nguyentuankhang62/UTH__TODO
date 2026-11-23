@@ -1,5 +1,7 @@
 package com.uth.uthtodo.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -23,17 +25,27 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uth.uthtodo.R
+import com.uth.uthtodo.model.AppPermissionType
 import com.uth.uthtodo.model.TaskCategory
 import com.uth.uthtodo.model.TaskItem
+import com.uth.uthtodo.ui.components.ContextualPermissionDialog
+import com.uth.uthtodo.ui.components.isAppPermissionGranted
 import com.uth.uthtodo.ui.theme.LifeBadgeBg
 import com.uth.uthtodo.ui.theme.LifeBadgeText
 import com.uth.uthtodo.ui.theme.PrimaryBlue
@@ -57,6 +69,37 @@ fun HomePreviewScreen(
     onOpenAddTask: () -> Unit,
     onReplayOnboarding: () -> Unit
 ) {
+    val context = LocalContext.current
+    var askedNotificationOnce by rememberSaveable { mutableStateOf(false) }
+    var showNotificationPrompt by remember { mutableStateOf(false) }
+
+    val notificationLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { }
+
+    // Chỉ gợi ý quyền Thông báo một lần khi mới vào ứng dụng nếu chưa được cấp
+    LaunchedEffect(Unit) {
+        if (!askedNotificationOnce && !isAppPermissionGranted(context, AppPermissionType.NOTIFICATION)) {
+            askedNotificationOnce = true
+            showNotificationPrompt = true
+        }
+    }
+
+    if (showNotificationPrompt) {
+        ContextualPermissionDialog(
+            permissionType = AppPermissionType.NOTIFICATION,
+            onAllow = {
+                showNotificationPrompt = false
+                if (AppPermissionType.NOTIFICATION.requiresRuntimePrompt()) {
+                    notificationLauncher.launch(AppPermissionType.NOTIFICATION.runtimePermission())
+                }
+            },
+            onSkip = {
+                showNotificationPrompt = false
+            }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
