@@ -14,6 +14,17 @@ import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
 
+// Dữ liệu gửi lên khi tạo mới công việc qua POST /tasks
+data class CreateTaskRequest(
+    val title: String,
+    val note: String,
+    val category: TaskCategory,
+    val date: String,
+    val time: String,
+    val priority: TaskPriority,
+    val remind: Boolean
+)
+
 // Kết quả trả về từ các lời gọi REST API
 sealed class ApiResult<out T> {
     data class Success<T>(val data: T) : ApiResult<T>()
@@ -111,6 +122,22 @@ class TaskApiClient(
         }
         val payload = JSONObject().put("subtasks", array).toString()
         executeRequest(method = "PATCH", path = "/tasks/$id", bodyJson = payload) { body ->
+            TaskJsonParser.parseTask(body)
+        }
+    }
+
+    // Tạo công việc mới từ form Thêm việc (POST /tasks)
+    suspend fun createTask(request: CreateTaskRequest): ApiResult<TaskItem> = withContext(Dispatchers.IO) {
+        val payload = JSONObject()
+            .put("title", request.title.trim())
+            .put("note", request.note.trim())
+            .put("category", request.category.key)
+            .put("date", request.date)
+            .put("time", request.time)
+            .put("priority", request.priority.key)
+            .put("remind", request.remind)
+            .toString()
+        executeRequest(method = "POST", path = "/tasks", bodyJson = payload) { body ->
             TaskJsonParser.parseTask(body)
         }
     }

@@ -18,6 +18,7 @@
     <string name="action_open_list_flow">Bài 6: Flow Danh sách (UI + API)</string>
     <string name="action_open_notifications_mvvm">Bài 7: Thực hành MVVM (Thông báo)</string>
     <string name="action_open_detail_flow">Bài 8: Flow Chi tiết (UI + API)</string>
+    <string name="action_open_add_task">Bài 9: Thêm mới công việc (MVVM + API)</string>
     <string name="brand_smart_tasks">SmartTasks</string>
     <string name="forget_password_title">Forget Password?</string>
     <string name="forget_password_subtitle">Enter your Email, we will send you a verification code.</string>
