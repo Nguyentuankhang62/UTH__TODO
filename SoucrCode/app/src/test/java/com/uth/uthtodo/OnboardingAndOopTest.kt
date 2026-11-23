@@ -51,10 +51,10 @@ class OnboardingAndOopTest {
 
     @Test
     fun userProfile_extractsInitialsAndRoutesAreDistinct() {
-        val user = UserProfile(uid = "u1", displayName = "Minh Anh", email = "minhanh@example.com")
-        assertEquals("MA", user.initials())
+        val user = UserProfile(uid = "u1", displayName = "Tuấn Khang", email = "tuankhang@ut.edu.vn")
+        assertEquals("TK", user.initials())
 
-        val routes = setOf(AppRoute.Splash.route, AppRoute.Onboarding.route, AppRoute.HomePreview.route)
+        val routes = setOf(AppRoute.Splash.route, AppRoute.Onboarding.route, AppRoute.HomeFlow.route)
         assertTrue(routes.size == 3)
     }
 }

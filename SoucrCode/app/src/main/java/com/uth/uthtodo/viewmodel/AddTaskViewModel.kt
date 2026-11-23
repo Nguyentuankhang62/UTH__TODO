@@ -82,6 +82,28 @@ class AddTaskViewModel(
         }
     }
 
+    // Cập nhật giờ và phút linh hoạt theo định dạng HH:mm
+    fun onTimeSelect(hour: Int, minute: Int) {
+        _uiState.update { it.copy(time = formatTime(hour, minute)) }
+    }
+
+    companion object {
+        // Định dạng giờ phút chuẩn HH:mm và giới hạn trong khoảng 00:00 - 23:59
+        fun formatTime(hour: Int, minute: Int): String {
+            val safeHour = hour.coerceIn(0, 23)
+            val safeMinute = minute.coerceIn(0, 59)
+            return "%02d:%02d".format(safeHour, safeMinute)
+        }
+
+        // Tách chuỗi HH:mm thành cặp (giờ, phút), mặc định 19:00 nếu sai định dạng
+        fun parseTime(time: String): Pair<Int, Int> {
+            val parts = time.split(":")
+            val hour = parts.getOrNull(0)?.toIntOrNull()?.coerceIn(0, 23) ?: 19
+            val minute = parts.getOrNull(1)?.toIntOrNull()?.coerceIn(0, 59) ?: 0
+            return hour to minute
+        }
+    }
+
     fun onRemindToggle(enabled: Boolean) {
         _uiState.update { it.copy(remind = enabled) }
     }

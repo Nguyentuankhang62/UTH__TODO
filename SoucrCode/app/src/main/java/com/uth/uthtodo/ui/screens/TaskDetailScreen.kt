@@ -28,6 +28,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,6 +43,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -55,26 +58,28 @@ import com.uth.uthtodo.R
 import com.uth.uthtodo.model.SubTask
 import com.uth.uthtodo.model.TaskCategory
 import com.uth.uthtodo.model.TaskPriority
-import com.uth.uthtodo.ui.theme.BorderLight
+import com.uth.uthtodo.ui.theme.DarkLifeBadgeBg
+import com.uth.uthtodo.ui.theme.DarkLifeBadgeText
+import com.uth.uthtodo.ui.theme.DarkStudyBadgeBg
+import com.uth.uthtodo.ui.theme.DarkStudyBadgeText
 import com.uth.uthtodo.ui.theme.LifeBadgeBg
 import com.uth.uthtodo.ui.theme.LifeBadgeText
-import com.uth.uthtodo.ui.theme.PrimaryBlue
+import com.uth.uthtodo.ui.theme.LocalIsDarkTheme
 import com.uth.uthtodo.ui.theme.StudyBadgeBg
 import com.uth.uthtodo.ui.theme.StudyBadgeText
-import com.uth.uthtodo.ui.theme.SurfaceMuted
-import com.uth.uthtodo.ui.theme.TextPrimary
-import com.uth.uthtodo.ui.theme.TextSecondary
 import com.uth.uthtodo.viewmodel.SubtaskListHelper
 import com.uth.uthtodo.viewmodel.TaskDetailViewModel
 import com.uth.uthtodo.viewmodel.TaskListFilterEngine
 
-// Màn hình Chi tiết công việc (Tuần 04) kết nối GET, PATCH và DELETE /tasks/{id}
+// Màn hình Chi tiết công việc hỗ trợ Sáng/Tối và kết nối GET, PATCH, DELETE /tasks/{id}
 @Composable
 fun TaskDetailScreen(
     taskId: Long,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val isDark = LocalIsDarkTheme.current
+    val colorScheme = MaterialTheme.colorScheme
     val viewModel = remember { TaskDetailViewModel() }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val coroutineScope = rememberCoroutineScope()
@@ -117,7 +122,7 @@ fun TaskDetailScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(SurfaceMuted)
+            .background(colorScheme.background)
             .statusBarsPadding()
             .navigationBarsPadding()
             .imePadding()
@@ -130,7 +135,7 @@ fun TaskDetailScreen(
         ) {
             Text(
                 text = "< Trang chủ",
-                color = PrimaryBlue,
+                color = colorScheme.primary,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier
@@ -139,7 +144,7 @@ fun TaskDetailScreen(
             )
             Text(
                 text = "Sửa",
-                color = PrimaryBlue,
+                color = colorScheme.primary,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier
@@ -159,7 +164,7 @@ fun TaskDetailScreen(
                     .fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator(color = PrimaryBlue)
+                CircularProgressIndicator(color = colorScheme.primary)
             }
         } else if (uiState.errorMessage != null) {
             Box(
@@ -171,7 +176,7 @@ fun TaskDetailScreen(
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(18.dp),
-                    color = Color.White
+                    color = colorScheme.surface
                 ) {
                     Column(
                         modifier = Modifier.padding(24.dp),
@@ -180,14 +185,14 @@ fun TaskDetailScreen(
                     ) {
                         Text(
                             text = uiState.errorMessage.orEmpty(),
-                            color = Color(0xFFB91C1C),
+                            color = Color(0xFFEF4444),
                             fontSize = 14.sp,
                             textAlign = TextAlign.Center
                         )
                         Button(
                             onClick = { viewModel.loadTask(taskId, coroutineScope) },
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                            colors = ButtonDefaults.buttonColors(containerColor = colorScheme.primary)
                         ) {
                             Text("Thử lại")
                         }
@@ -197,6 +202,16 @@ fun TaskDetailScreen(
         } else {
             val task = uiState.task ?: return
             val isStudy = task.category == TaskCategory.STUDY
+            val badgeBg = if (isStudy) {
+                if (isDark) DarkStudyBadgeBg else StudyBadgeBg
+            } else {
+                if (isDark) DarkLifeBadgeBg else LifeBadgeBg
+            }
+            val badgeText = if (isStudy) {
+                if (isDark) DarkStudyBadgeText else StudyBadgeText
+            } else {
+                if (isDark) DarkLifeBadgeText else LifeBadgeText
+            }
             val priorityText = when (task.priority) {
                 TaskPriority.HIGH -> "Ưu tiên cao"
                 TaskPriority.MEDIUM -> "Ưu tiên vừa"
@@ -213,11 +228,11 @@ fun TaskDetailScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = if (isStudy) StudyBadgeBg else LifeBadgeBg
+                        color = badgeBg
                     ) {
                         Text(
                             text = task.category.displayName,
-                            color = if (isStudy) StudyBadgeText else LifeBadgeText,
+                            color = badgeText,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
@@ -225,11 +240,11 @@ fun TaskDetailScreen(
                     }
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFFE5E7EB)
+                        color = colorScheme.surfaceVariant
                     ) {
                         Text(
                             text = priorityText,
-                            color = TextSecondary,
+                            color = colorScheme.onSurfaceVariant,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
@@ -242,14 +257,14 @@ fun TaskDetailScreen(
                     fontSize = 24.sp,
                     lineHeight = 31.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimary
+                    color = colorScheme.onBackground
                 )
 
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    color = Color.White,
-                    shadowElevation = 1.dp
+                    color = colorScheme.surface,
+                    shadowElevation = if (isDark) 0.dp else 1.dp
                 ) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         DetailInfoRow(
@@ -258,7 +273,7 @@ fun TaskDetailScreen(
                             value = TaskListFilterEngine.formatDueLabel(task.date, task.time)
                         )
                         HorizontalDivider(
-                            color = BorderLight.copy(alpha = 0.7f),
+                            color = colorScheme.outlineVariant.copy(alpha = 0.7f),
                             modifier = Modifier.padding(horizontal = 16.dp)
                         )
                         DetailInfoRow(
@@ -275,19 +290,19 @@ fun TaskDetailScreen(
                             text = "Ghi chú",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = TextSecondary
+                            color = colorScheme.onSurfaceVariant
                         )
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
-                            color = Color.White,
-                            shadowElevation = 1.dp
+                            color = colorScheme.surface,
+                            shadowElevation = if (isDark) 0.dp else 1.dp
                         ) {
                             Text(
                                 text = task.note,
                                 fontSize = 14.sp,
                                 lineHeight = 20.sp,
-                                color = TextPrimary,
+                                color = colorScheme.onSurface,
                                 modifier = Modifier.padding(16.dp)
                             )
                         }
@@ -319,13 +334,13 @@ fun TaskDetailScreen(
                             text = "Việc nhỏ",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = TextSecondary
+                            color = colorScheme.onSurfaceVariant
                         )
                         Text(
                             text = "${task.completedSubtaskCount()}/${task.subtasks.size}",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = TextSecondary
+                            color = colorScheme.onSurfaceVariant
                         )
                     }
 
@@ -334,22 +349,22 @@ fun TaskDetailScreen(
                             .fillMaxWidth()
                             .height(6.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFE5E7EB))
+                            .background(colorScheme.surfaceVariant)
                     ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth(progress)
                                 .height(6.dp)
                                 .clip(CircleShape)
-                                .background(PrimaryBlue)
+                                .background(colorScheme.primary)
                         )
                     }
 
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        color = Color.White,
-                        shadowElevation = 1.dp
+                        color = colorScheme.surface,
+                        shadowElevation = if (isDark) 0.dp else 1.dp
                     ) {
                         Column(modifier = Modifier.fillMaxWidth()) {
                             task.subtasks.forEachIndexed { index, sub ->
@@ -360,7 +375,7 @@ fun TaskDetailScreen(
                                     onDelete = { viewModel.deleteSubtask(index, coroutineScope) }
                                 )
                                 HorizontalDivider(
-                                    color = BorderLight.copy(alpha = 0.6f),
+                                    color = colorScheme.outlineVariant.copy(alpha = 0.6f),
                                     modifier = Modifier.padding(horizontal = 14.dp)
                                 )
                             }
@@ -375,7 +390,7 @@ fun TaskDetailScreen(
                                 Text(
                                     text = "+",
                                     fontSize = 18.sp,
-                                    color = TextSecondary,
+                                    color = colorScheme.onSurfaceVariant,
                                     fontWeight = FontWeight.Medium
                                 )
                                 Box(modifier = Modifier.weight(1f)) {
@@ -383,23 +398,24 @@ fun TaskDetailScreen(
                                         Text(
                                             text = "Thêm việc nhỏ",
                                             fontSize = 14.sp,
-                                            color = TextSecondary
+                                            color = colorScheme.onSurfaceVariant
                                         )
                                     }
                                     BasicTextField(
                                         value = uiState.newSubtaskTitle,
                                         onValueChange = { viewModel.onNewSubtaskTitleChange(it) },
                                         singleLine = true,
-                                        textStyle = TextStyle(fontSize = 14.sp, color = TextPrimary),
+                                        cursorBrush = SolidColor(colorScheme.primary),
+                                        textStyle = TextStyle(fontSize = 14.sp, color = colorScheme.onSurface),
                                         modifier = Modifier.fillMaxWidth()
                                     )
                                 }
                                 Text(
                                     text = "Thêm",
                                     color = if (uiState.newSubtaskTitle.isNotBlank() && !uiState.isMutating) {
-                                        PrimaryBlue
+                                        colorScheme.primary
                                     } else {
-                                        TextSecondary
+                                        colorScheme.onSurfaceVariant
                                     },
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold,
@@ -425,7 +441,7 @@ fun TaskDetailScreen(
                     .height(52.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = PrimaryBlue,
+                    containerColor = colorScheme.primary,
                     contentColor = Color.White
                 )
             ) {
@@ -451,7 +467,7 @@ fun TaskDetailScreen(
             ) {
                 Text(
                     text = "Xóa công việc",
-                    color = Color(0xFFDC2626),
+                    color = Color(0xFFEF4444),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -462,6 +478,7 @@ fun TaskDetailScreen(
 
 @Composable
 private fun DetailInfoRow(iconRes: Int, label: String, value: String) {
+    val colorScheme = MaterialTheme.colorScheme
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -476,19 +493,20 @@ private fun DetailInfoRow(iconRes: Int, label: String, value: String) {
             Image(
                 painter = painterResource(id = iconRes),
                 contentDescription = label,
+                colorFilter = ColorFilter.tint(colorScheme.onSurfaceVariant),
                 modifier = Modifier.size(18.dp)
             )
             Text(
                 text = label,
                 fontSize = 14.sp,
-                color = TextSecondary
+                color = colorScheme.onSurfaceVariant
             )
         }
         Text(
             text = value,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
-            color = TextPrimary
+            color = colorScheme.onSurface
         )
     }
 }
@@ -500,6 +518,7 @@ private fun SubtaskRow(
     onToggle: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -513,7 +532,7 @@ private fun SubtaskRow(
                 modifier = Modifier
                     .size(20.dp)
                     .clip(RoundedCornerShape(6.dp))
-                    .background(PrimaryBlue),
+                    .background(colorScheme.primary),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
@@ -527,14 +546,14 @@ private fun SubtaskRow(
                 modifier = Modifier
                     .size(20.dp)
                     .clip(RoundedCornerShape(6.dp))
-                    .border(1.6.dp, BorderLight, RoundedCornerShape(6.dp))
+                    .border(1.6.dp, colorScheme.outlineVariant, RoundedCornerShape(6.dp))
             )
         }
 
         Text(
             text = subTask.title,
             fontSize = 14.sp,
-            color = if (subTask.done) TextSecondary else TextPrimary,
+            color = if (subTask.done) colorScheme.onSurfaceVariant else colorScheme.onSurface,
             textDecoration = if (subTask.done) TextDecoration.LineThrough else TextDecoration.None,
             modifier = Modifier.weight(1f)
         )
@@ -542,6 +561,7 @@ private fun SubtaskRow(
         Image(
             painter = painterResource(id = R.drawable.ic_delete),
             contentDescription = "Xóa việc nhỏ",
+            colorFilter = ColorFilter.tint(colorScheme.onSurfaceVariant),
             modifier = Modifier
                 .size(18.dp)
                 .clickable(enabled = enabled) { onDelete() }

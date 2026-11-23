@@ -105,8 +105,8 @@ class FirebaseAuthManager(
             .addOnSuccessListener { result ->
                 val profile = UserProfile(
                     uid = result.user?.uid ?: "guest",
-                    displayName = "Minh Anh",
-                    email = "guest@uthtodo.app",
+                    displayName = "Tuấn Khang",
+                    email = "tuankhang@ut.edu.vn",
                     isGuest = true
                 )
                 onResult(
@@ -129,10 +129,14 @@ class FirebaseAuthManager(
 
     private fun mapFirebaseUser(
         user: FirebaseUser?,
-        fallbackEmail: String = "minhanh@example.com"
+        fallbackEmail: String = "tuankhang@ut.edu.vn"
     ): UserProfile {
         val email = user?.email?.takeIf { it.isNotBlank() } ?: fallbackEmail
-        val defaultName = email.substringBefore("@").replaceFirstChar { it.uppercase() }
+        val defaultName = if (user?.isAnonymous == true) {
+            "Tuấn Khang"
+        } else {
+            email.substringBefore("@").replaceFirstChar { it.uppercase() }
+        }
         val name = user?.displayName?.takeIf { it.isNotBlank() } ?: defaultName
         return UserProfile(
             uid = user?.uid.orEmpty(),

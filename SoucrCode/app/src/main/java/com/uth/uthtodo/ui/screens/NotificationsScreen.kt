@@ -22,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -34,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -43,21 +45,22 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.uth.uthtodo.R
 import com.uth.uthtodo.model.NotificationItem
 import com.uth.uthtodo.model.NotificationType
-import com.uth.uthtodo.ui.theme.BorderLight
-import com.uth.uthtodo.ui.theme.PrimaryBlue
+import com.uth.uthtodo.ui.components.MainTab
+import com.uth.uthtodo.ui.components.UthBottomBar
+import com.uth.uthtodo.ui.theme.LocalIsDarkTheme
 import com.uth.uthtodo.ui.theme.SoftBlueCard
-import com.uth.uthtodo.ui.theme.SurfaceMuted
-import com.uth.uthtodo.ui.theme.TextPrimary
-import com.uth.uthtodo.ui.theme.TextSecondary
 import com.uth.uthtodo.viewmodel.NotificationViewModel
 
-// Màn hình Thông báo theo mô hình MVVM, tự chuyển sang EmptyView sau 10 giây
+// Màn hình Thông báo hỗ trợ Sáng/Tối và tự chuyển sang EmptyView sau 10 giây
 @Composable
 fun NotificationsScreen(
     onOpenHome: () -> Unit,
     onOpenTaskList: () -> Unit,
-    onBack: () -> Unit
+    onOpenAddTask: () -> Unit,
+    onOpenSettings: () -> Unit
 ) {
+    val isDark = LocalIsDarkTheme.current
+    val colorScheme = MaterialTheme.colorScheme
     val viewModel = remember { NotificationViewModel() }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val coroutineScope = rememberCoroutineScope()
@@ -69,7 +72,7 @@ fun NotificationsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(SurfaceMuted)
+            .background(colorScheme.background)
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
@@ -87,7 +90,7 @@ fun NotificationsScreen(
                     text = "Thông báo",
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimary
+                    color = colorScheme.onBackground
                 )
 
                 if (!uiState.isEmpty) {
@@ -95,7 +98,7 @@ fun NotificationsScreen(
                         text = "Đánh dấu đã đọc",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
-                        color = PrimaryBlue,
+                        color = colorScheme.primary,
                         modifier = Modifier
                             .clickable { viewModel.markAllAsRead() }
                             .padding(vertical = 4.dp)
@@ -110,7 +113,7 @@ fun NotificationsScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth(),
-                    onAddTaskClick = onOpenTaskList,
+                    onAddTaskClick = onOpenAddTask,
                     onReloadSampleClick = { viewModel.reloadSample(coroutineScope) }
                 )
             } else {
@@ -123,18 +126,19 @@ fun NotificationsScreen(
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(18.dp),
-                        color = Color.White,
-                        shadowElevation = 1.dp
+                        color = colorScheme.surface,
+                        shadowElevation = if (isDark) 0.dp else 1.dp
                     ) {
                         Column(modifier = Modifier.fillMaxWidth()) {
                             uiState.notifications.forEachIndexed { index, item ->
                                 NotificationRow(
                                     item = item,
+                                    isDark = isDark,
                                     onClick = { viewModel.markAsRead(item.id) }
                                 )
                                 if (index < uiState.notifications.lastIndex) {
                                     HorizontalDivider(
-                                        color = BorderLight.copy(alpha = 0.7f),
+                                        color = colorScheme.outlineVariant.copy(alpha = 0.7f),
                                         modifier = Modifier.padding(horizontal = 16.dp)
                                     )
                                 }
@@ -145,7 +149,7 @@ fun NotificationsScreen(
                     Text(
                         text = "Tự động chuyển sang giao diện trống sau ${uiState.secondsRemaining} giây...",
                         fontSize = 12.sp,
-                        color = TextSecondary,
+                        color = colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -155,10 +159,13 @@ fun NotificationsScreen(
             }
         }
 
-        NotificationsBottomBar(
+        UthBottomBar(
+            selectedTab = MainTab.NOTIFICATIONS,
             onOpenHome = onOpenHome,
             onOpenTaskList = onOpenTaskList,
-            onBackToMenu = onBack
+            onOpenAddTask = onOpenAddTask,
+            onOpenNotifications = {},
+            onOpenSettings = onOpenSettings
         )
     }
 }
@@ -166,15 +173,21 @@ fun NotificationsScreen(
 @Composable
 private fun NotificationRow(
     item: NotificationItem,
+    isDark: Boolean,
     onClick: () -> Unit
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     val (iconRes, iconBg) = when (item.type) {
-        NotificationType.UPCOMING -> R.drawable.ic_alarm to Color(0xFFEFF6FF)
-        NotificationType.OVERDUE -> R.drawable.ic_warning to Color(0xFFFEF2F2)
-        NotificationType.ACHIEVEMENT -> R.drawable.ic_check_green to Color(0xFFECFDF5)
-        NotificationType.REMINDER -> R.drawable.ic_alarm to Color(0xFFEEF2FF)
+        NotificationType.UPCOMING -> R.drawable.ic_alarm to if (isDark) Color(0xFF1E293B) else Color(0xFFEFF6FF)
+        NotificationType.OVERDUE -> R.drawable.ic_warning to if (isDark) Color(0xFF3F1D1D) else Color(0xFFFEF2F2)
+        NotificationType.ACHIEVEMENT -> R.drawable.ic_check_green to if (isDark) Color(0xFF143324) else Color(0xFFECFDF5)
+        NotificationType.REMINDER -> R.drawable.ic_alarm to if (isDark) Color(0xFF1E293B) else Color(0xFFEEF2FF)
     }
-    val rowBg = if (item.isUnread) Color(0xFFF8FAFF) else Color.White
+    val rowBg = if (item.isUnread) {
+        if (isDark) colorScheme.primary.copy(alpha = 0.08f) else Color(0xFFF8FAFF)
+    } else {
+        colorScheme.surface
+    }
 
     Row(
         modifier = Modifier
@@ -212,7 +225,7 @@ private fun NotificationRow(
                     text = item.title,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimary
+                    color = colorScheme.onSurface
                 )
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -221,14 +234,14 @@ private fun NotificationRow(
                     Text(
                         text = item.timeLabel,
                         fontSize = 11.sp,
-                        color = TextSecondary
+                        color = colorScheme.onSurfaceVariant
                     )
                     if (item.isUnread) {
                         Box(
                             modifier = Modifier
                                 .size(7.dp)
                                 .clip(CircleShape)
-                                .background(PrimaryBlue)
+                                .background(colorScheme.primary)
                         )
                     }
                 }
@@ -238,7 +251,7 @@ private fun NotificationRow(
                 text = item.message,
                 fontSize = 13.sp,
                 lineHeight = 18.sp,
-                color = TextSecondary
+                color = colorScheme.onSurfaceVariant
             )
         }
     }
@@ -251,6 +264,8 @@ private fun NotificationEmptyView(
     onAddTaskClick: () -> Unit,
     onReloadSampleClick: () -> Unit
 ) {
+    val isDark = LocalIsDarkTheme.current
+    val colorScheme = MaterialTheme.colorScheme
     Column(
         modifier = modifier.padding(horizontal = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -264,18 +279,19 @@ private fun NotificationEmptyView(
                 modifier = Modifier
                     .size(116.dp)
                     .clip(CircleShape)
-                    .background(SoftBlueCard)
+                    .background(if (isDark) colorScheme.primaryContainer else SoftBlueCard)
             )
             Surface(
                 modifier = Modifier.size(68.dp),
                 shape = CircleShape,
-                color = Color.White,
-                shadowElevation = 2.dp
+                color = colorScheme.surface,
+                shadowElevation = if (isDark) 0.dp else 2.dp
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Image(
                         painter = painterResource(id = R.drawable.ic_bell),
                         contentDescription = null,
+                        colorFilter = ColorFilter.tint(colorScheme.onSurface),
                         modifier = Modifier.size(28.dp)
                     )
                 }
@@ -303,7 +319,7 @@ private fun NotificationEmptyView(
             text = "Chưa có thông báo nào",
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
-            color = TextPrimary,
+            color = colorScheme.onBackground,
             textAlign = TextAlign.Center
         )
 
@@ -313,7 +329,7 @@ private fun NotificationEmptyView(
             text = "Khi có việc sắp đến hạn, quá hạn hoặc lời nhắc, bạn sẽ thấy chúng ở đây.",
             fontSize = 14.sp,
             lineHeight = 20.sp,
-            color = TextSecondary,
+            color = colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
 
@@ -323,7 +339,7 @@ private fun NotificationEmptyView(
             onClick = onAddTaskClick,
             shape = RoundedCornerShape(14.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = PrimaryBlue,
+                containerColor = colorScheme.primary,
                 contentColor = Color.White
             ),
             modifier = Modifier.height(48.dp)
@@ -341,77 +357,10 @@ private fun NotificationEmptyView(
         TextButton(onClick = onReloadSampleClick) {
             Text(
                 text = "Cài đặt nhắc việc",
-                color = PrimaryBlue,
+                color = colorScheme.primary,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium
             )
         }
-    }
-}
-
-@Composable
-private fun NotificationsBottomBar(
-    onOpenHome: () -> Unit,
-    onOpenTaskList: () -> Unit,
-    onBackToMenu: () -> Unit
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = Color.White,
-        shadowElevation = 8.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(modifier = Modifier.clickable { onOpenHome() }) {
-                NotificationNavItem(iconRes = R.drawable.ic_home, label = "Trang chủ", selected = false)
-            }
-            Box(modifier = Modifier.clickable { onOpenTaskList() }) {
-                NotificationNavItem(iconRes = R.drawable.ic_list, label = "Danh sách", selected = false)
-            }
-
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(PrimaryBlue),
-                contentAlignment = Alignment.Center
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_add),
-                    contentDescription = null,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-
-            NotificationNavItem(iconRes = R.drawable.ic_bell, label = "Thông báo", selected = true)
-            Box(modifier = Modifier.clickable { onBackToMenu() }) {
-                NotificationNavItem(iconRes = R.drawable.ic_settings, label = "Cài đặt", selected = false)
-            }
-        }
-    }
-}
-
-@Composable
-private fun NotificationNavItem(iconRes: Int, label: String, selected: Boolean) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp)
-    ) {
-        Image(
-            painter = painterResource(id = iconRes),
-            contentDescription = label,
-            modifier = Modifier.size(20.dp)
-        )
-        Text(
-            text = label,
-            fontSize = 11.sp,
-            color = if (selected) PrimaryBlue else TextSecondary,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
-        )
     }
 }

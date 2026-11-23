@@ -17,11 +17,11 @@ class FirebaseAuthModelsTest {
     fun authUiState_clearsUserOnSignOutReset() {
         val signedInState = AuthUiState(
             isLoading = false,
-            currentUser = UserProfile("uid_1", "Minh Anh", "minhanh@example.com"),
+            currentUser = UserProfile("uid_1", "Tuấn Khang", "tuankhang@ut.edu.vn"),
             providerType = AuthProviderType.GOOGLE,
             successMessage = "Đăng nhập thành công!"
         )
-        assertEquals("MA", signedInState.currentUser?.initials())
+        assertEquals("TK", signedInState.currentUser?.initials())
 
         val signedOutState = AuthUiState()
         assertNull(signedOutState.currentUser)
@@ -32,10 +32,9 @@ class FirebaseAuthModelsTest {
     @Test
     fun authResult_distinguishesSuccessAndError() {
         val error = AuthResult.Error("Email hoặc mật khẩu không chính xác.")
-        assertTrue(error is AuthResult.Error)
         assertEquals("Email hoặc mật khẩu không chính xác.", error.message)
 
-        val authRoutes = setOf(AppRoute.Login.route, AppRoute.AuthHome.route, AppRoute.Profile.route)
+        val authRoutes = setOf(AppRoute.Login.route, AppRoute.HomeFlow.route, AppRoute.Profile.route)
         assertEquals(3, authRoutes.size)
     }
 }
