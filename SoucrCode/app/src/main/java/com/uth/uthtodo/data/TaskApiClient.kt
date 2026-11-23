@@ -99,6 +99,27 @@ class TaskApiClient(
         }
     }
 
+    // Cập nhật toàn bộ danh sách việc nhỏ của công việc (PATCH /tasks/{id})
+    suspend fun patchSubtasks(id: Long, subtasks: List<SubTask>): ApiResult<TaskItem> = withContext(Dispatchers.IO) {
+        val array = JSONArray()
+        subtasks.forEach { item ->
+            array.put(
+                JSONObject()
+                    .put("title", item.title)
+                    .put("done", item.done)
+            )
+        }
+        val payload = JSONObject().put("subtasks", array).toString()
+        executeRequest(method = "PATCH", path = "/tasks/$id", bodyJson = payload) { body ->
+            TaskJsonParser.parseTask(body)
+        }
+    }
+
+    // Xóa công việc cùng toàn bộ việc nhỏ (DELETE /tasks/{id})
+    suspend fun deleteTask(id: Long): ApiResult<Unit> = withContext(Dispatchers.IO) {
+        executeRequest(method = "DELETE", path = "/tasks/$id") { Unit }
+    }
+
     private fun <T> executeRequest(
         method: String,
         path: String,

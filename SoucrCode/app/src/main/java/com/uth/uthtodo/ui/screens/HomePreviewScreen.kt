@@ -53,6 +53,7 @@ fun HomePreviewScreen(
     onOpenHomeFlow: () -> Unit,
     onOpenTaskList: () -> Unit,
     onOpenNotifications: () -> Unit,
+    onOpenTaskDetail: () -> Unit,
     onReplayOnboarding: () -> Unit
 ) {
     Column(
@@ -106,6 +107,20 @@ fun HomePreviewScreen(
             item {
                 Spacer(modifier = Modifier.height(6.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(
+                        onClick = onOpenTaskDetail,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Text(
+                            text = stringResource(id = R.string.action_open_detail_flow),
+                            color = PrimaryBlue,
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
+
                     OutlinedButton(
                         onClick = onOpenNotifications,
                         modifier = Modifier
