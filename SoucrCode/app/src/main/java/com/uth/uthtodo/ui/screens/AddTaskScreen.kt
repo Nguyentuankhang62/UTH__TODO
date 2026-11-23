@@ -58,6 +58,7 @@ import com.uth.uthtodo.model.AppPermissionType
 import com.uth.uthtodo.model.TaskCategory
 import com.uth.uthtodo.model.TaskPriority
 import com.uth.uthtodo.ui.components.ContextualPermissionDialog
+import com.uth.uthtodo.ui.components.FlexibleTimePickerDialog
 import com.uth.uthtodo.ui.components.isAppPermissionGranted
 import com.uth.uthtodo.ui.theme.LocalIsDarkTheme
 import com.uth.uthtodo.viewmodel.AddTaskViewModel
@@ -76,10 +77,24 @@ fun AddTaskScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val coroutineScope = rememberCoroutineScope()
     var showNotificationPrompt by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
 
     val notificationLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { }
+
+    if (showTimePicker) {
+        val (initHour, initMinute) = AddTaskViewModel.parseTime(uiState.time)
+        FlexibleTimePickerDialog(
+            initialHour = initHour,
+            initialMinute = initMinute,
+            onDismiss = { showTimePicker = false },
+            onConfirm = { hour, minute ->
+                viewModel.onTimeSelect(hour, minute)
+                showTimePicker = false
+            }
+        )
+    }
 
     if (showNotificationPrompt) {
         ContextualPermissionDialog(
@@ -295,7 +310,7 @@ fun AddTaskScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { viewModel.onCycleTime() }
+                            .clickable { showTimePicker = true }
                             .padding(horizontal = 16.dp, vertical = 14.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
