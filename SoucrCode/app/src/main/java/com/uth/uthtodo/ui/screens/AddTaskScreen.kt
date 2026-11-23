@@ -1,6 +1,8 @@
 package com.uth.uthtodo.ui.screens
 
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -33,8 +35,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -47,8 +51,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.uth.uthtodo.R
+import com.uth.uthtodo.model.AppPermissionType
 import com.uth.uthtodo.model.TaskCategory
 import com.uth.uthtodo.model.TaskPriority
+import com.uth.uthtodo.ui.components.ContextualPermissionDialog
+import com.uth.uthtodo.ui.components.isAppPermissionGranted
 import com.uth.uthtodo.ui.theme.BorderLight
 import com.uth.uthtodo.ui.theme.PrimaryBlue
 import com.uth.uthtodo.ui.theme.SoftBlueCard
@@ -68,6 +75,46 @@ fun AddTaskScreen(
     val viewModel = remember { AddTaskViewModel() }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val coroutineScope = rememberCoroutineScope()
+    var activePermissionPrompt by remember { mutableStateOf<AppPermissionType?>(null) }
+    var pendingPermissionType by remember { mutableStateOf<AppPermissionType?>(null) }
+    var attachmentStatus by remember { mutableStateOf<String?>(null) }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        val target = pendingPermissionType ?: return@rememberLauncherForActivityResult
+        pendingPermissionType = null
+        if (granted) {
+            attachmentStatus = when (target) {
+                AppPermissionType.CAMERA -> "Đã cấp quyền Camera — sẵn sàng chụp ảnh ghi chú."
+                AppPermissionType.MEDIA_IMAGES -> "Đã cấp quyền Thư viện ảnh — sẵn sàng chọn tài liệu."
+                AppPermissionType.NOTIFICATION -> "Đã bật quyền Thông báo nhắc việc trước 15 phút."
+            }
+        } else {
+            Toast.makeText(
+                context,
+                "Bạn có thể bật lại quyền ${target.title} trong Cài đặt ứng dụng.",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    val currentPrompt = activePermissionPrompt
+    if (currentPrompt != null) {
+        ContextualPermissionDialog(
+            permissionType = currentPrompt,
+            onAllow = {
+                activePermissionPrompt = null
+                if (!currentPrompt.requiresRuntimePrompt()) {
+                    attachmentStatus = "Đã bật quyền ${currentPrompt.title}."
+                } else {
+                    pendingPermissionType = currentPrompt
+                    permissionLauncher.launch(currentPrompt.runtimePermission())
+                }
+            },
+            onSkip = { activePermissionPrompt = null }
+        )
+    }
 
     LaunchedEffect(uiState.createdTask) {
         val created = uiState.createdTask ?: return@LaunchedEffect
@@ -352,7 +399,12 @@ fun AddTaskScreen(
 
                         Switch(
                             checked = uiState.remind,
-                            onCheckedChange = { viewModel.onRemindToggle(it) },
+                            onCheckedChange = { enabled ->
+                                viewModel.onRemindToggle(enabled)
+                                if (enabled && !isAppPermissionGranted(context, AppPermissionType.NOTIFICATION)) {
+                                    activePermissionPrompt = AppPermissionType.NOTIFICATION
+                                }
+                            },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = Color.White,
                                 checkedTrackColor = Color(0xFF22C55E),
@@ -403,6 +455,95 @@ fun AddTaskScreen(
                             }
                         }
                     }
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "Đính kèm tài liệu (tùy chọn)",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextSecondary
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable {
+                                if (isAppPermissionGranted(context, AppPermissionType.CAMERA)) {
+                                    attachmentStatus = "Camera đã sẵn sàng chụp ảnh ghi chú."
+                                } else {
+                                    activePermissionPrompt = AppPermissionType.CAMERA
+                                }
+                            },
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color.White,
+                        border = BorderStroke(1.dp, BorderLight)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_camera),
+                                contentDescription = "Chụp ảnh",
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.size(8.dp))
+                            Text(
+                                text = "Chụp ảnh",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = TextPrimary
+                            )
+                        }
+                    }
+
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable {
+                                if (isAppPermissionGranted(context, AppPermissionType.MEDIA_IMAGES)) {
+                                    attachmentStatus = "Thư viện ảnh đã sẵn sàng chọn tài liệu."
+                                } else {
+                                    activePermissionPrompt = AppPermissionType.MEDIA_IMAGES
+                                }
+                            },
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color.White,
+                        border = BorderStroke(1.dp, BorderLight)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_gallery),
+                                contentDescription = "Thư viện ảnh",
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.size(8.dp))
+                            Text(
+                                text = "Thư viện ảnh",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = TextPrimary
+                            )
+                        }
+                    }
+                }
+
+                if (attachmentStatus != null) {
+                    Text(
+                        text = attachmentStatus.orEmpty(),
+                        fontSize = 12.sp,
+                        color = PrimaryBlue
+                    )
                 }
             }
         }
