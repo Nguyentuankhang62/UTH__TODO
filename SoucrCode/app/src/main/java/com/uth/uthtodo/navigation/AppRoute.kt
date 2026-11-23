@@ -19,6 +19,7 @@ import com.uth.uthtodo.auth.AuthUiState
 import com.uth.uthtodo.auth.FirebaseAuthManager
 import com.uth.uthtodo.model.OnboardingRepository
 import com.uth.uthtodo.model.PasswordResetFlowData
+import com.uth.uthtodo.ui.screens.AddTaskScreen
 import com.uth.uthtodo.ui.screens.AuthHomeScreen
 import com.uth.uthtodo.ui.screens.ConfirmResetScreen
 import com.uth.uthtodo.ui.screens.CreateNewPasswordScreen
@@ -55,6 +56,7 @@ sealed class AppRoute(val route: String) {
         // Tạo route mở chi tiết công việc theo mã id
         fun createRoute(taskId: Long): String = "task_detail/$taskId"
     }
+    data object AddTask : AppRoute("add_task")
     data object ForgetPassword : AppRoute("forget_password")
 
     data object VerifyCode : AppRoute("verify_code/{email}") {
@@ -143,6 +145,9 @@ fun AppNavGraph(
                 },
                 onOpenTaskDetail = {
                     navController.navigate(AppRoute.TaskDetail.createRoute(2L))
+                },
+                onOpenAddTask = {
+                    navController.navigate(AppRoute.AddTask.route)
                 },
                 onReplayOnboarding = {
                     navController.navigate(AppRoute.Onboarding.route) {
@@ -286,6 +291,17 @@ fun AppNavGraph(
             TaskDetailScreen(
                 taskId = taskId,
                 onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(AppRoute.AddTask.route) {
+            AddTaskScreen(
+                onCancel = { navController.popBackStack() },
+                onTaskCreated = { createdId ->
+                    navController.navigate(AppRoute.TaskDetail.createRoute(createdId)) {
+                        popUpTo(AppRoute.AddTask.route) { inclusive = true }
+                    }
+                }
             )
         }
 
