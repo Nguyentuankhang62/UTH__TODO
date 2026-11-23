@@ -1,5 +1,7 @@
 package com.uth.uthtodo.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -24,19 +26,25 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -45,39 +53,79 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.uth.uthtodo.R
+import com.uth.uthtodo.model.AppPermissionType
 import com.uth.uthtodo.model.TaskCategory
 import com.uth.uthtodo.model.TaskItem
-import com.uth.uthtodo.ui.theme.BorderLight
+import com.uth.uthtodo.ui.components.ContextualPermissionDialog
+import com.uth.uthtodo.ui.components.MainTab
+import com.uth.uthtodo.ui.components.UthBottomBar
+import com.uth.uthtodo.ui.components.isAppPermissionGranted
+import com.uth.uthtodo.ui.theme.DarkLifeBadgeBg
+import com.uth.uthtodo.ui.theme.DarkLifeBadgeText
+import com.uth.uthtodo.ui.theme.DarkStudyBadgeBg
+import com.uth.uthtodo.ui.theme.DarkStudyBadgeText
 import com.uth.uthtodo.ui.theme.LifeBadgeBg
 import com.uth.uthtodo.ui.theme.LifeBadgeText
-import com.uth.uthtodo.ui.theme.PrimaryBlue
+import com.uth.uthtodo.ui.theme.LocalIsDarkTheme
 import com.uth.uthtodo.ui.theme.StudyBadgeBg
 import com.uth.uthtodo.ui.theme.StudyBadgeText
-import com.uth.uthtodo.ui.theme.SurfaceMuted
-import com.uth.uthtodo.ui.theme.TextPrimary
-import com.uth.uthtodo.ui.theme.TextSecondary
 import com.uth.uthtodo.viewmodel.HomeFlowViewModel
 
-// Màn hình Trang chủ (Tuần 04) tải danh sách công việc và thống kê trực tiếp từ REST API
+// Màn hình Trang chủ hỗ trợ đầy đủ giao diện Sáng/Tối theo thiết kế Figma
 @Composable
 fun HomeFlowScreen(
-    displayName: String = "bạn",
-    avatarText: String = "K",
+    displayName: String = "Tuấn Khang",
+    avatarText: String = "TK",
     onProfileClick: () -> Unit,
-    onBack: () -> Unit
+    onOpenTaskList: () -> Unit,
+    onOpenTaskDetail: (Long) -> Unit,
+    onOpenAddTask: () -> Unit,
+    onOpenNotifications: () -> Unit,
+    onOpenSettings: () -> Unit
 ) {
+    val context = LocalContext.current
+    val isDark = LocalIsDarkTheme.current
+    val colorScheme = MaterialTheme.colorScheme
     val viewModel = remember { HomeFlowViewModel() }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val coroutineScope = rememberCoroutineScope()
+    var askedNotificationOnce by rememberSaveable { mutableStateOf(false) }
+    var showNotificationPrompt by remember { mutableStateOf(false) }
+
+    val notificationLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { }
 
     LaunchedEffect(Unit) {
         viewModel.loadTasks(coroutineScope)
+        if (!askedNotificationOnce && !isAppPermissionGranted(context, AppPermissionType.NOTIFICATION)) {
+            askedNotificationOnce = true
+            showNotificationPrompt = true
+        }
     }
+
+    if (showNotificationPrompt) {
+        ContextualPermissionDialog(
+            permissionType = AppPermissionType.NOTIFICATION,
+            onAllow = {
+                showNotificationPrompt = false
+                if (AppPermissionType.NOTIFICATION.requiresRuntimePrompt()) {
+                    notificationLauncher.launch(AppPermissionType.NOTIFICATION.runtimePermission())
+                }
+            },
+            onSkip = { showNotificationPrompt = false }
+        )
+    }
+
+    val studyBg = if (isDark) DarkStudyBadgeBg else StudyBadgeBg
+    val studyText = if (isDark) DarkStudyBadgeText else StudyBadgeText
+    val lifeBg = if (isDark) DarkLifeBadgeBg else LifeBadgeBg
+    val lifeText = if (isDark) DarkLifeBadgeText else LifeBadgeText
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(SurfaceMuted)
+            .background(colorScheme.background)
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
@@ -102,12 +150,12 @@ fun HomeFlowScreen(
                         modifier = Modifier
                             .size(44.dp)
                             .clip(CircleShape)
-                            .background(StudyBadgeBg),
+                            .background(studyBg),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = avatarText,
-                            color = StudyBadgeText,
+                            color = studyText,
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp
                         )
@@ -116,13 +164,13 @@ fun HomeFlowScreen(
                         Text(
                             text = "Thứ Ba, 20 tháng 10",
                             fontSize = 12.sp,
-                            color = TextSecondary
+                            color = colorScheme.onSurfaceVariant
                         )
                         Text(
                             text = "Chào $displayName!",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextPrimary
+                            color = colorScheme.onBackground
                         )
                     }
                 }
@@ -131,13 +179,14 @@ fun HomeFlowScreen(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(Color.White)
-                        .clickable { viewModel.loadTasks(coroutineScope) },
+                        .background(colorScheme.surface)
+                        .clickable { onOpenNotifications() },
                     contentAlignment = Alignment.Center
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.ic_bell),
                         contentDescription = null,
+                        colorFilter = ColorFilter.tint(colorScheme.onSurface),
                         modifier = Modifier.size(20.dp)
                     )
                     Box(
@@ -162,11 +211,11 @@ fun HomeFlowScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        CircularProgressIndicator(color = PrimaryBlue)
+                        CircularProgressIndicator(color = colorScheme.primary)
                         Text(
                             text = "Đang tải danh sách công việc...",
                             fontSize = 14.sp,
-                            color = TextSecondary
+                            color = colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -174,8 +223,8 @@ fun HomeFlowScreen(
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(18.dp),
-                    color = Color.White,
-                    shadowElevation = 1.dp
+                    color = colorScheme.surface,
+                    shadowElevation = if (isDark) 0.dp else 1.dp
                 ) {
                     Column(
                         modifier = Modifier.padding(24.dp),
@@ -184,14 +233,14 @@ fun HomeFlowScreen(
                     ) {
                         Text(
                             text = uiState.errorMessage.orEmpty(),
-                            color = Color(0xFFB91C1C),
+                            color = Color(0xFFEF4444),
                             fontSize = 14.sp,
                             textAlign = TextAlign.Center
                         )
                         Button(
                             onClick = { viewModel.loadTasks(coroutineScope) },
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                            colors = ButtonDefaults.buttonColors(containerColor = colorScheme.primary)
                         ) {
                             Text("Thử lại")
                         }
@@ -203,7 +252,7 @@ fun HomeFlowScreen(
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(22.dp),
-                    color = PrimaryBlue
+                    color = colorScheme.primary
                 ) {
                     Row(
                         modifier = Modifier.padding(20.dp),
@@ -243,14 +292,16 @@ fun HomeFlowScreen(
                     HomeCategoryStatCard(
                         modifier = Modifier.weight(1f),
                         iconRes = R.drawable.ic_study,
-                        iconBg = StudyBadgeBg,
+                        iconBg = studyBg,
+                        iconTint = studyText,
                         title = "Học tập",
                         subtitle = "${stats.studyRemaining} việc còn lại"
                     )
                     HomeCategoryStatCard(
                         modifier = Modifier.weight(1f),
                         iconRes = R.drawable.ic_life,
-                        iconBg = LifeBadgeBg,
+                        iconBg = lifeBg,
+                        iconTint = lifeText,
                         title = "Cuộc sống",
                         subtitle = "${stats.lifeRemaining} việc còn lại"
                     )
@@ -280,13 +331,14 @@ fun HomeFlowScreen(
                         text = "Việc hôm nay",
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextPrimary
+                        color = colorScheme.onBackground
                     )
                     Text(
-                        text = "Xem tất cả (${uiState.allTasks.size})",
+                        text = "Xem tất cả",
                         fontSize = 13.sp,
-                        color = PrimaryBlue,
-                        fontWeight = FontWeight.Medium
+                        color = if (isDark) Color(0xFF60A5FA) else colorScheme.primary,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.clickable { onOpenTaskList() }
                     )
                 }
 
@@ -294,12 +346,12 @@ fun HomeFlowScreen(
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        color = Color.White
+                        color = colorScheme.surface
                     ) {
                         Text(
                             text = "Hôm nay chưa có công việc nào.",
                             fontSize = 14.sp,
-                            color = TextSecondary,
+                            color = colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.padding(24.dp)
                         )
@@ -309,7 +361,8 @@ fun HomeFlowScreen(
                         HomeApiTaskRow(
                             task = task,
                             isUpdating = uiState.updatingTaskId == task.id,
-                            onToggleDone = { viewModel.toggleTaskDone(task, coroutineScope) }
+                            onToggleDone = { viewModel.toggleTaskDone(task, coroutineScope) },
+                            onOpenDetail = { onOpenTaskDetail(task.id) }
                         )
                     }
                 }
@@ -318,7 +371,14 @@ fun HomeFlowScreen(
             }
         }
 
-        HomeFlowBottomBar(onBackToMenu = onBack)
+        UthBottomBar(
+            selectedTab = MainTab.HOME,
+            onOpenHome = {},
+            onOpenTaskList = onOpenTaskList,
+            onOpenAddTask = onOpenAddTask,
+            onOpenNotifications = onOpenNotifications,
+            onOpenSettings = onOpenSettings
+        )
     }
 }
 
@@ -359,14 +419,17 @@ private fun HomeCategoryStatCard(
     modifier: Modifier = Modifier,
     iconRes: Int,
     iconBg: Color,
+    iconTint: Color,
     title: String,
     subtitle: String
 ) {
+    val isDark = LocalIsDarkTheme.current
+    val colorScheme = MaterialTheme.colorScheme
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(18.dp),
-        color = Color.White,
-        shadowElevation = 1.dp
+        color = colorScheme.surface,
+        shadowElevation = if (isDark) 0.dp else 1.dp
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -382,6 +445,7 @@ private fun HomeCategoryStatCard(
                 Image(
                     painter = painterResource(id = iconRes),
                     contentDescription = title,
+                    colorFilter = ColorFilter.tint(iconTint),
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -389,12 +453,12 @@ private fun HomeCategoryStatCard(
                 text = title,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = TextPrimary
+                color = colorScheme.onSurface
             )
             Text(
                 text = subtitle,
                 fontSize = 12.sp,
-                color = TextSecondary
+                color = colorScheme.onSurfaceVariant
             )
         }
     }
@@ -404,49 +468,70 @@ private fun HomeCategoryStatCard(
 private fun HomeApiTaskRow(
     task: TaskItem,
     isUpdating: Boolean,
-    onToggleDone: () -> Unit
+    onToggleDone: () -> Unit,
+    onOpenDetail: () -> Unit
 ) {
+    val isDark = LocalIsDarkTheme.current
+    val colorScheme = MaterialTheme.colorScheme
     val isStudy = task.category == TaskCategory.STUDY
+    val badgeBg = if (isStudy) {
+        if (isDark) DarkStudyBadgeBg else StudyBadgeBg
+    } else {
+        if (isDark) DarkLifeBadgeBg else LifeBadgeBg
+    }
+    val badgeText = if (isStudy) {
+        if (isDark) DarkStudyBadgeText else StudyBadgeText
+    } else {
+        if (isDark) DarkLifeBadgeText else LifeBadgeText
+    }
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = !isUpdating) { onToggleDone() },
+            .clickable { onOpenDetail() },
         shape = RoundedCornerShape(16.dp),
-        color = Color.White,
-        shadowElevation = 1.dp
+        color = colorScheme.surface,
+        shadowElevation = if (isDark) 0.dp else 1.dp
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            if (isUpdating) {
-                CircularProgressIndicator(
-                    color = PrimaryBlue,
-                    strokeWidth = 2.dp,
-                    modifier = Modifier.size(22.dp)
-                )
-            } else if (task.done) {
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clip(CircleShape)
-                        .background(PrimaryBlue),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_check),
-                        contentDescription = null,
-                        modifier = Modifier.size(13.dp)
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clickable(enabled = !isUpdating) { onToggleDone() },
+                contentAlignment = Alignment.Center
+            ) {
+                if (isUpdating) {
+                    CircularProgressIndicator(
+                        color = colorScheme.primary,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(20.dp)
+                    )
+                } else if (task.done) {
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(colorScheme.primary),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_check),
+                            contentDescription = null,
+                            modifier = Modifier.size(13.dp)
+                        )
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .border(1.8.dp, colorScheme.outlineVariant, CircleShape)
                     )
                 }
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clip(CircleShape)
-                        .border(1.8.dp, BorderLight, CircleShape)
-                )
             }
 
             Column(
@@ -457,7 +542,7 @@ private fun HomeApiTaskRow(
                     text = task.title,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
-                    color = if (task.done) TextSecondary else TextPrimary,
+                    color = if (task.done) colorScheme.onSurfaceVariant else colorScheme.onSurface,
                     textDecoration = if (task.done) TextDecoration.LineThrough else TextDecoration.None
                 )
                 Row(
@@ -466,11 +551,11 @@ private fun HomeApiTaskRow(
                 ) {
                     Surface(
                         shape = RoundedCornerShape(6.dp),
-                        color = if (isStudy) StudyBadgeBg else LifeBadgeBg
+                        color = badgeBg
                     ) {
                         Text(
                             text = task.category.displayName,
-                            color = if (isStudy) StudyBadgeText else LifeBadgeText,
+                            color = badgeText,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -479,7 +564,7 @@ private fun HomeApiTaskRow(
                     Text(
                         text = task.time,
                         fontSize = 12.sp,
-                        color = TextSecondary
+                        color = colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -487,67 +572,9 @@ private fun HomeApiTaskRow(
             Image(
                 painter = painterResource(id = R.drawable.ic_chevron_right),
                 contentDescription = null,
+                colorFilter = ColorFilter.tint(colorScheme.onSurfaceVariant),
                 modifier = Modifier.size(16.dp)
             )
         }
-    }
-}
-
-@Composable
-private fun HomeFlowBottomBar(onBackToMenu: () -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = Color.White,
-        shadowElevation = 8.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            HomeFlowNavItem(iconRes = R.drawable.ic_home, label = "Trang chủ", selected = true)
-            HomeFlowNavItem(iconRes = R.drawable.ic_list, label = "Danh sách", selected = false)
-
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(PrimaryBlue),
-                contentAlignment = Alignment.Center
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_add),
-                    contentDescription = null,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-
-            HomeFlowNavItem(iconRes = R.drawable.ic_bell, label = "Thông báo", selected = false)
-            Box(modifier = Modifier.clickable { onBackToMenu() }) {
-                HomeFlowNavItem(iconRes = R.drawable.ic_settings, label = "Cài đặt", selected = false)
-            }
-        }
-    }
-}
-
-@Composable
-private fun HomeFlowNavItem(iconRes: Int, label: String, selected: Boolean) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp)
-    ) {
-        Image(
-            painter = painterResource(id = iconRes),
-            contentDescription = label,
-            modifier = Modifier.size(20.dp)
-        )
-        Text(
-            text = label,
-            fontSize = 11.sp,
-            color = if (selected) PrimaryBlue else TextSecondary,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
-        )
     }
 }

@@ -79,7 +79,7 @@ class FirebaseServicesManager(context: Context) {
         val authDetail = if (currentUser != null) {
             "Đã đăng nhập (UID: ${currentUser.uid.take(8)}...)"
         } else {
-            "Sẵn sàng xác thực Email & Anonymous"
+            "Sẵn sàng xác thực Email và Anonymous"
         }
 
         val items = listOf(

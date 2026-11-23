@@ -28,6 +28,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -42,6 +43,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -56,63 +59,38 @@ import com.uth.uthtodo.model.TaskCategory
 import com.uth.uthtodo.model.TaskPriority
 import com.uth.uthtodo.ui.components.ContextualPermissionDialog
 import com.uth.uthtodo.ui.components.isAppPermissionGranted
-import com.uth.uthtodo.ui.theme.BorderLight
-import com.uth.uthtodo.ui.theme.PrimaryBlue
-import com.uth.uthtodo.ui.theme.SoftBlueCard
-import com.uth.uthtodo.ui.theme.SurfaceMuted
-import com.uth.uthtodo.ui.theme.TextPrimary
-import com.uth.uthtodo.ui.theme.TextSecondary
+import com.uth.uthtodo.ui.theme.LocalIsDarkTheme
 import com.uth.uthtodo.viewmodel.AddTaskViewModel
 import com.uth.uthtodo.viewmodel.TaskDatePreset
 
-// Màn hình Thêm mới công việc theo mô hình MVVM và gửi POST /tasks
+// Màn hình Thêm mới công việc bám sát thiết kế Figma và gửi POST /tasks
 @Composable
 fun AddTaskScreen(
     onCancel: () -> Unit,
     onTaskCreated: (Long) -> Unit
 ) {
     val context = LocalContext.current
+    val isDark = LocalIsDarkTheme.current
+    val colorScheme = MaterialTheme.colorScheme
     val viewModel = remember { AddTaskViewModel() }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val coroutineScope = rememberCoroutineScope()
-    var activePermissionPrompt by remember { mutableStateOf<AppPermissionType?>(null) }
-    var pendingPermissionType by remember { mutableStateOf<AppPermissionType?>(null) }
-    var attachmentStatus by remember { mutableStateOf<String?>(null) }
+    var showNotificationPrompt by remember { mutableStateOf(false) }
 
-    val permissionLauncher = rememberLauncherForActivityResult(
+    val notificationLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        val target = pendingPermissionType ?: return@rememberLauncherForActivityResult
-        pendingPermissionType = null
-        if (granted) {
-            attachmentStatus = when (target) {
-                AppPermissionType.CAMERA -> "Đã cấp quyền Camera — sẵn sàng chụp ảnh ghi chú."
-                AppPermissionType.MEDIA_IMAGES -> "Đã cấp quyền Thư viện ảnh — sẵn sàng chọn tài liệu."
-                AppPermissionType.NOTIFICATION -> "Đã bật quyền Thông báo nhắc việc trước 15 phút."
-            }
-        } else {
-            Toast.makeText(
-                context,
-                "Bạn có thể bật lại quyền ${target.title} trong Cài đặt ứng dụng.",
-                Toast.LENGTH_SHORT
-            ).show()
-        }
-    }
+    ) { }
 
-    val currentPrompt = activePermissionPrompt
-    if (currentPrompt != null) {
+    if (showNotificationPrompt) {
         ContextualPermissionDialog(
-            permissionType = currentPrompt,
+            permissionType = AppPermissionType.NOTIFICATION,
             onAllow = {
-                activePermissionPrompt = null
-                if (!currentPrompt.requiresRuntimePrompt()) {
-                    attachmentStatus = "Đã bật quyền ${currentPrompt.title}."
-                } else {
-                    pendingPermissionType = currentPrompt
-                    permissionLauncher.launch(currentPrompt.runtimePermission())
+                showNotificationPrompt = false
+                if (AppPermissionType.NOTIFICATION.requiresRuntimePrompt()) {
+                    notificationLauncher.launch(AppPermissionType.NOTIFICATION.runtimePermission())
                 }
             },
-            onSkip = { activePermissionPrompt = null }
+            onSkip = { showNotificationPrompt = false }
         )
     }
 
@@ -125,7 +103,7 @@ fun AddTaskScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(SurfaceMuted)
+            .background(colorScheme.background)
             .statusBarsPadding()
             .navigationBarsPadding()
             .imePadding()
@@ -134,7 +112,7 @@ fun AddTaskScreen(
         Box(modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = "Hủy",
-                color = PrimaryBlue,
+                color = colorScheme.primary,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier
@@ -144,14 +122,14 @@ fun AddTaskScreen(
             )
             Text(
                 text = "Việc mới",
-                color = TextPrimary,
+                color = colorScheme.onBackground,
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.align(Alignment.Center)
             )
             Text(
                 text = "Lưu",
-                color = if (uiState.canSave) PrimaryBlue else TextSecondary.copy(alpha = 0.6f),
+                color = if (uiState.canSave) colorScheme.primary else colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier
@@ -172,8 +150,8 @@ fun AddTaskScreen(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
-                color = Color.White,
-                shadowElevation = 1.dp
+                color = colorScheme.surface,
+                shadowElevation = if (isDark) 0.dp else 1.dp
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Column(
@@ -183,24 +161,25 @@ fun AddTaskScreen(
                         Text(
                             text = "Tên công việc",
                             fontSize = 12.sp,
-                            color = TextSecondary
+                            color = colorScheme.onSurfaceVariant
                         )
                         Box(modifier = Modifier.fillMaxWidth()) {
                             if (uiState.title.isEmpty()) {
                                 Text(
                                     text = "Ví dụ: Ôn chương 4 – Giải thuật",
                                     fontSize = 16.sp,
-                                    color = TextSecondary.copy(alpha = 0.65f)
+                                    color = colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
                                 )
                             }
                             BasicTextField(
                                 value = uiState.title,
                                 onValueChange = { viewModel.onTitleChange(it) },
                                 singleLine = true,
+                                cursorBrush = SolidColor(colorScheme.primary),
                                 textStyle = TextStyle(
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Medium,
-                                    color = TextPrimary
+                                    color = colorScheme.onSurface
                                 ),
                                 modifier = Modifier.fillMaxWidth()
                             )
@@ -208,7 +187,7 @@ fun AddTaskScreen(
                     }
 
                     HorizontalDivider(
-                        color = BorderLight.copy(alpha = 0.7f),
+                        color = colorScheme.outlineVariant.copy(alpha = 0.7f),
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
 
@@ -219,7 +198,7 @@ fun AddTaskScreen(
                         Text(
                             text = "Ghi chú",
                             fontSize = 12.sp,
-                            color = TextSecondary
+                            color = colorScheme.onSurfaceVariant
                         )
                         Box(
                             modifier = Modifier
@@ -230,13 +209,14 @@ fun AddTaskScreen(
                                 Text(
                                     text = "Thêm ghi chú (không bắt buộc)",
                                     fontSize = 14.sp,
-                                    color = TextSecondary.copy(alpha = 0.65f)
+                                    color = colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
                                 )
                             }
                             BasicTextField(
                                 value = uiState.note,
                                 onValueChange = { viewModel.onNoteChange(it) },
-                                textStyle = TextStyle(fontSize = 14.sp, color = TextPrimary),
+                                cursorBrush = SolidColor(colorScheme.primary),
+                                textStyle = TextStyle(fontSize = 14.sp, color = colorScheme.onSurface),
                                 modifier = Modifier.fillMaxSize()
                             )
                         }
@@ -264,7 +244,7 @@ fun AddTaskScreen(
                     text = "Nhóm",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextSecondary
+                    color = colorScheme.onSurfaceVariant
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -287,7 +267,7 @@ fun AddTaskScreen(
                     text = "Ngày",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextSecondary
+                    color = colorScheme.onSurfaceVariant
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -308,8 +288,8 @@ fun AddTaskScreen(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
-                color = Color.White,
-                shadowElevation = 1.dp
+                color = colorScheme.surface,
+                shadowElevation = if (isDark) 0.dp else 1.dp
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Row(
@@ -327,19 +307,20 @@ fun AddTaskScreen(
                             Image(
                                 painter = painterResource(id = R.drawable.ic_clock),
                                 contentDescription = null,
+                                colorFilter = ColorFilter.tint(colorScheme.onSurfaceVariant),
                                 modifier = Modifier.size(18.dp)
                             )
                             Text(
                                 text = "Giờ",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = TextPrimary
+                                color = colorScheme.onSurface
                             )
                         }
 
                         Surface(
                             shape = RoundedCornerShape(10.dp),
-                            color = SurfaceMuted
+                            color = colorScheme.surfaceVariant
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -350,11 +331,12 @@ fun AddTaskScreen(
                                     text = uiState.time,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = TextPrimary
+                                    color = colorScheme.onSurface
                                 )
                                 Image(
                                     painter = painterResource(id = R.drawable.ic_clock),
                                     contentDescription = null,
+                                    colorFilter = ColorFilter.tint(colorScheme.onSurfaceVariant),
                                     modifier = Modifier.size(14.dp)
                                 )
                             }
@@ -362,7 +344,7 @@ fun AddTaskScreen(
                     }
 
                     HorizontalDivider(
-                        color = BorderLight.copy(alpha = 0.7f),
+                        color = colorScheme.outlineVariant.copy(alpha = 0.7f),
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
 
@@ -380,6 +362,7 @@ fun AddTaskScreen(
                             Image(
                                 painter = painterResource(id = R.drawable.ic_bell),
                                 contentDescription = null,
+                                colorFilter = ColorFilter.tint(colorScheme.onSurfaceVariant),
                                 modifier = Modifier.size(18.dp)
                             )
                             Column {
@@ -387,12 +370,12 @@ fun AddTaskScreen(
                                     text = "Nhắc tôi",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium,
-                                    color = TextPrimary
+                                    color = colorScheme.onSurface
                                 )
                                 Text(
                                     text = "Trước 15 phút",
                                     fontSize = 12.sp,
-                                    color = TextSecondary
+                                    color = colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -402,14 +385,15 @@ fun AddTaskScreen(
                             onCheckedChange = { enabled ->
                                 viewModel.onRemindToggle(enabled)
                                 if (enabled && !isAppPermissionGranted(context, AppPermissionType.NOTIFICATION)) {
-                                    activePermissionPrompt = AppPermissionType.NOTIFICATION
+                                    showNotificationPrompt = true
                                 }
                             },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = Color.White,
                                 checkedTrackColor = Color(0xFF22C55E),
                                 uncheckedThumbColor = Color.White,
-                                uncheckedTrackColor = Color(0xFFCBD5E1)
+                                uncheckedTrackColor = colorScheme.outlineVariant,
+                                uncheckedBorderColor = Color.Transparent
                             )
                         )
                     }
@@ -421,12 +405,12 @@ fun AddTaskScreen(
                     text = "Mức ưu tiên",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextSecondary
+                    color = colorScheme.onSurfaceVariant
                 )
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
-                    color = Color(0xFFEDF0F5)
+                    color = colorScheme.surfaceVariant
                 ) {
                     Row(
                         modifier = Modifier
@@ -441,109 +425,20 @@ fun AddTaskScreen(
                                     .weight(1f)
                                     .clickable { viewModel.onPrioritySelect(priority) },
                                 shape = RoundedCornerShape(10.dp),
-                                color = if (selected) Color.White else Color.Transparent,
-                                shadowElevation = if (selected) 1.dp else 0.dp
+                                color = if (selected) colorScheme.surface else Color.Transparent,
+                                shadowElevation = if (selected && !isDark) 1.dp else 0.dp
                             ) {
                                 Text(
                                     text = priority.displayName,
                                     fontSize = 13.sp,
                                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                                    color = if (selected) TextPrimary else TextSecondary,
+                                    color = if (selected) colorScheme.onSurface else colorScheme.onSurfaceVariant,
                                     textAlign = TextAlign.Center,
                                     modifier = Modifier.padding(vertical = 10.dp)
                                 )
                             }
                         }
                     }
-                }
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = "Đính kèm tài liệu (tùy chọn)",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TextSecondary
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Surface(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable {
-                                if (isAppPermissionGranted(context, AppPermissionType.CAMERA)) {
-                                    attachmentStatus = "Camera đã sẵn sàng chụp ảnh ghi chú."
-                                } else {
-                                    activePermissionPrompt = AppPermissionType.CAMERA
-                                }
-                            },
-                        shape = RoundedCornerShape(14.dp),
-                        color = Color.White,
-                        border = BorderStroke(1.dp, BorderLight)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.ic_camera),
-                                contentDescription = "Chụp ảnh",
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.size(8.dp))
-                            Text(
-                                text = "Chụp ảnh",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = TextPrimary
-                            )
-                        }
-                    }
-
-                    Surface(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable {
-                                if (isAppPermissionGranted(context, AppPermissionType.MEDIA_IMAGES)) {
-                                    attachmentStatus = "Thư viện ảnh đã sẵn sàng chọn tài liệu."
-                                } else {
-                                    activePermissionPrompt = AppPermissionType.MEDIA_IMAGES
-                                }
-                            },
-                        shape = RoundedCornerShape(14.dp),
-                        color = Color.White,
-                        border = BorderStroke(1.dp, BorderLight)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.ic_gallery),
-                                contentDescription = "Thư viện ảnh",
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.size(8.dp))
-                            Text(
-                                text = "Thư viện ảnh",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = TextPrimary
-                            )
-                        }
-                    }
-                }
-
-                if (attachmentStatus != null) {
-                    Text(
-                        text = attachmentStatus.orEmpty(),
-                        fontSize = 12.sp,
-                        color = PrimaryBlue
-                    )
                 }
             }
         }
@@ -558,10 +453,10 @@ fun AddTaskScreen(
                 .height(52.dp),
             shape = RoundedCornerShape(16.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = PrimaryBlue,
+                containerColor = colorScheme.primary,
                 contentColor = Color.White,
-                disabledContainerColor = Color(0xFFE5E7EB),
-                disabledContentColor = TextSecondary
+                disabledContainerColor = colorScheme.surfaceVariant,
+                disabledContentColor = colorScheme.onSurfaceVariant
             )
         ) {
             if (uiState.isSubmitting) {
@@ -588,18 +483,19 @@ private fun SelectableOptionChip(
     selected: Boolean,
     onClick: () -> Unit
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     Surface(
         modifier = modifier.clickable { onClick() },
         shape = RoundedCornerShape(14.dp),
-        color = if (selected) SoftBlueCard else Color.White,
+        color = if (selected) colorScheme.primaryContainer else colorScheme.surface,
         border = BorderStroke(
             width = if (selected) 1.5.dp else 1.dp,
-            color = if (selected) PrimaryBlue else BorderLight
+            color = if (selected) colorScheme.primary else colorScheme.outlineVariant
         )
     ) {
         Text(
             text = label,
-            color = if (selected) PrimaryBlue else TextPrimary,
+            color = if (selected) colorScheme.onPrimaryContainer else colorScheme.onSurface,
             fontSize = 14.sp,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
             textAlign = TextAlign.Center,

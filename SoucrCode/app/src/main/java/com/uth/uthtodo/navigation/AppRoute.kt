@@ -17,20 +17,21 @@ import com.uth.uthtodo.auth.AuthProviderType
 import com.uth.uthtodo.auth.AuthResult
 import com.uth.uthtodo.auth.AuthUiState
 import com.uth.uthtodo.auth.FirebaseAuthManager
+import com.uth.uthtodo.model.AppAppearanceState
 import com.uth.uthtodo.model.OnboardingRepository
 import com.uth.uthtodo.model.PasswordResetFlowData
+import com.uth.uthtodo.model.UserProfile
 import com.uth.uthtodo.ui.screens.AddTaskScreen
-import com.uth.uthtodo.ui.screens.AuthHomeScreen
 import com.uth.uthtodo.ui.screens.ConfirmResetScreen
 import com.uth.uthtodo.ui.screens.CreateNewPasswordScreen
 import com.uth.uthtodo.ui.screens.FirebaseServicesScreen
 import com.uth.uthtodo.ui.screens.ForgetPasswordScreen
 import com.uth.uthtodo.ui.screens.HomeFlowScreen
-import com.uth.uthtodo.ui.screens.HomePreviewScreen
 import com.uth.uthtodo.ui.screens.LoginScreen
 import com.uth.uthtodo.ui.screens.NotificationsScreen
 import com.uth.uthtodo.ui.screens.OnboardingScreen
 import com.uth.uthtodo.ui.screens.ProfileScreen
+import com.uth.uthtodo.ui.screens.SettingsScreen
 import com.uth.uthtodo.ui.screens.SplashScreen
 import com.uth.uthtodo.ui.screens.TaskDetailScreen
 import com.uth.uthtodo.ui.screens.TaskListScreen
@@ -40,23 +41,24 @@ private const val KEY_RESULT_EMAIL = "result_email"
 private const val KEY_RESULT_OTP = "result_otp"
 private const val KEY_RESULT_PASS = "result_pass"
 
-// Định nghĩa các tuyến điều hướng của ứng dụng theo mô hình OOP
+// Định nghĩa các tuyến điều hướng liền mạch của ứng dụng UTH Todo
 sealed class AppRoute(val route: String) {
     data object Splash : AppRoute("splash")
     data object Onboarding : AppRoute("onboarding")
-    data object HomePreview : AppRoute("home_preview")
     data object Login : AppRoute("login")
-    data object AuthHome : AppRoute("auth_home")
-    data object Profile : AppRoute("profile")
-    data object FirebaseServices : AppRoute("firebase_services")
     data object HomeFlow : AppRoute("home_flow")
     data object TaskList : AppRoute("task_list")
     data object Notifications : AppRoute("notifications")
+    data object Settings : AppRoute("settings")
+    data object Profile : AppRoute("profile")
+    data object FirebaseServices : AppRoute("firebase_services")
+    data object AddTask : AppRoute("add_task")
+
     data object TaskDetail : AppRoute("task_detail/{taskId}") {
         // Tạo route mở chi tiết công việc theo mã id
         fun createRoute(taskId: Long): String = "task_detail/$taskId"
     }
-    data object AddTask : AppRoute("add_task")
+
     data object ForgetPassword : AppRoute("forget_password")
 
     data object VerifyCode : AppRoute("verify_code/{email}") {
@@ -77,19 +79,47 @@ sealed class AppRoute(val route: String) {
     }
 }
 
-// Bộ điều hướng chính kết nối luồng Onboarding và luồng Data Flow quên mật khẩu
+// Bộ điều hướng chính nối liền mạch toàn bộ tính năng của ứng dụng UTH Todo
 @Composable
 fun AppNavGraph(
+    appearanceState: AppAppearanceState = AppAppearanceState(),
+    onAppearanceChange: (AppAppearanceState) -> Unit = {},
     navController: NavHostController = rememberNavController()
 ) {
     val repository = remember { OnboardingRepository() }
     val steps = remember(repository) { repository.getSteps() }
-    val sampleTasks = remember(repository) { repository.getSampleTasks() }
     val authManager = remember { FirebaseAuthManager() }
     var authUiState by remember {
         mutableStateOf(
             AuthUiState(currentUser = authManager.getCurrentUserProfile())
         )
+    }
+
+    val defaultUser = remember {
+        UserProfile(
+            uid = "guest",
+            displayName = "Tuấn Khang",
+            email = "tuankhang@ut.edu.vn",
+            isGuest = true
+        )
+    }
+
+    // Hàm hỗ trợ chuyển tab thanh điều hướng dưới không chồng chất backstack
+    val navigateToTab: (String) -> Unit = { targetRoute ->
+        navController.navigate(targetRoute) {
+            popUpTo(AppRoute.HomeFlow.route) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
+
+    val performSignOut: () -> Unit = {
+        authManager.signOut()
+        // Xóa toàn bộ state tài khoản cũ ngay khi đăng xuất
+        authUiState = AuthUiState(providerType = AuthProviderType.EMAIL)
+        navController.navigate(AppRoute.Login.route) {
+            popUpTo(0) { inclusive = true }
+        }
     }
 
     NavHost(
@@ -99,7 +129,12 @@ fun AppNavGraph(
         composable(AppRoute.Splash.route) {
             SplashScreen(
                 onFinished = {
-                    navController.navigate(AppRoute.Onboarding.route) {
+                    val destination = if (authUiState.currentUser != null) {
+                        AppRoute.HomeFlow.route
+                    } else {
+                        AppRoute.Onboarding.route
+                    }
+                    navController.navigate(destination) {
                         popUpTo(AppRoute.Splash.route) { inclusive = true }
                     }
                 }
@@ -110,48 +145,13 @@ fun AppNavGraph(
             OnboardingScreen(
                 steps = steps,
                 onFinishOnboarding = {
-                    navController.navigate(AppRoute.HomePreview.route) {
-                        popUpTo(AppRoute.Onboarding.route) { inclusive = true }
-                    }
-                }
-            )
-        }
-
-        composable(AppRoute.HomePreview.route) {
-            HomePreviewScreen(
-                sampleTasks = sampleTasks,
-                onOpenDataFlow = {
-                    navController.navigate(AppRoute.ForgetPassword.route)
-                },
-                onOpenFirebaseAuth = {
                     val destination = if (authUiState.currentUser != null) {
-                        AppRoute.AuthHome.route
+                        AppRoute.HomeFlow.route
                     } else {
                         AppRoute.Login.route
                     }
-                    navController.navigate(destination)
-                },
-                onOpenFirebaseServices = {
-                    navController.navigate(AppRoute.FirebaseServices.route)
-                },
-                onOpenHomeFlow = {
-                    navController.navigate(AppRoute.HomeFlow.route)
-                },
-                onOpenTaskList = {
-                    navController.navigate(AppRoute.TaskList.route)
-                },
-                onOpenNotifications = {
-                    navController.navigate(AppRoute.Notifications.route)
-                },
-                onOpenTaskDetail = {
-                    navController.navigate(AppRoute.TaskDetail.createRoute(2L))
-                },
-                onOpenAddTask = {
-                    navController.navigate(AppRoute.AddTask.route)
-                },
-                onReplayOnboarding = {
-                    navController.navigate(AppRoute.Onboarding.route) {
-                        popUpTo(AppRoute.HomePreview.route) { inclusive = true }
+                    navController.navigate(destination) {
+                        popUpTo(AppRoute.Onboarding.route) { inclusive = true }
                     }
                 }
             )
@@ -167,7 +167,7 @@ fun AppNavGraph(
                             providerType = result.provider,
                             successMessage = result.message
                         )
-                        navController.navigate(AppRoute.AuthHome.route) {
+                        navController.navigate(AppRoute.HomeFlow.route) {
                             popUpTo(AppRoute.Login.route) { inclusive = true }
                         }
                     }
@@ -192,6 +192,9 @@ fun AppNavGraph(
                     authUiState = authUiState.copy(isLoading = true, errorMessage = null)
                     authManager.registerWithEmail(email, password, handleAuthResult)
                 },
+                onForgotPassword = {
+                    navController.navigate(AppRoute.ForgetPassword.route)
+                },
                 onGoogleSignIn = {
                     authUiState = authUiState.copy(
                         isLoading = false,
@@ -205,80 +208,68 @@ fun AppNavGraph(
             )
         }
 
-        composable(AppRoute.AuthHome.route) {
-            val currentUser = authUiState.currentUser
-            if (currentUser != null) {
-                AuthHomeScreen(
-                    user = currentUser,
-                    tasks = sampleTasks,
-                    bannerMessage = authUiState.successMessage,
-                    onProfileClick = {
-                        navController.navigate(AppRoute.Profile.route)
-                    }
-                )
-            }
-        }
-
-        composable(AppRoute.Profile.route) {
-            ProfileScreen(
-                uiState = authUiState,
-                onBack = { navController.popBackStack() },
-                onSignOut = {
-                    authManager.signOut()
-                    // Xóa toàn bộ state tài khoản cũ ngay khi đăng xuất
-                    authUiState = AuthUiState(providerType = AuthProviderType.EMAIL)
-                    navController.navigate(AppRoute.Login.route) {
-                        popUpTo(AppRoute.AuthHome.route) { inclusive = true }
-                    }
-                }
-            )
-        }
-
-        composable(AppRoute.FirebaseServices.route) {
-            FirebaseServicesScreen(
-                onBack = { navController.popBackStack() }
-            )
-        }
-
         composable(AppRoute.HomeFlow.route) {
-            val currentUser = authUiState.currentUser
+            val activeUser = authUiState.currentUser ?: defaultUser
             HomeFlowScreen(
-                displayName = currentUser?.displayName ?: "bạn",
-                avatarText = currentUser?.initials() ?: "K",
-                onProfileClick = {
-                    if (currentUser != null) {
-                        navController.navigate(AppRoute.Profile.route)
-                    } else {
-                        navController.navigate(AppRoute.Login.route)
-                    }
-                },
-                onBack = { navController.popBackStack() }
+                displayName = activeUser.displayName,
+                avatarText = activeUser.initials(),
+                onProfileClick = { navController.navigate(AppRoute.Profile.route) },
+                onOpenTaskList = { navigateToTab(AppRoute.TaskList.route) },
+                onOpenTaskDetail = { id -> navController.navigate(AppRoute.TaskDetail.createRoute(id)) },
+                onOpenAddTask = { navController.navigate(AppRoute.AddTask.route) },
+                onOpenNotifications = { navigateToTab(AppRoute.Notifications.route) },
+                onOpenSettings = { navigateToTab(AppRoute.Settings.route) }
             )
         }
 
         composable(AppRoute.TaskList.route) {
             TaskListScreen(
-                onOpenHome = {
-                    navController.navigate(AppRoute.HomeFlow.route) {
-                        launchSingleTop = true
-                    }
-                },
-                onBack = { navController.popBackStack() }
+                onOpenHome = { navigateToTab(AppRoute.HomeFlow.route) },
+                onOpenTaskDetail = { id -> navController.navigate(AppRoute.TaskDetail.createRoute(id)) },
+                onOpenAddTask = { navController.navigate(AppRoute.AddTask.route) },
+                onOpenNotifications = { navigateToTab(AppRoute.Notifications.route) },
+                onOpenSettings = { navigateToTab(AppRoute.Settings.route) }
             )
         }
 
         composable(AppRoute.Notifications.route) {
             NotificationsScreen(
-                onOpenHome = {
-                    navController.navigate(AppRoute.HomeFlow.route) {
-                        launchSingleTop = true
-                    }
-                },
-                onOpenTaskList = {
-                    navController.navigate(AppRoute.TaskList.route) {
-                        launchSingleTop = true
-                    }
-                },
+                onOpenHome = { navigateToTab(AppRoute.HomeFlow.route) },
+                onOpenTaskList = { navigateToTab(AppRoute.TaskList.route) },
+                onOpenAddTask = { navController.navigate(AppRoute.AddTask.route) },
+                onOpenSettings = { navigateToTab(AppRoute.Settings.route) }
+            )
+        }
+
+        composable(AppRoute.Settings.route) {
+            val activeUser = authUiState.currentUser ?: defaultUser
+            SettingsScreen(
+                user = activeUser,
+                appearanceState = appearanceState,
+                onAppearanceChange = onAppearanceChange,
+                onOpenProfile = { navController.navigate(AppRoute.Profile.route) },
+                onOpenHome = { navigateToTab(AppRoute.HomeFlow.route) },
+                onOpenTaskList = { navigateToTab(AppRoute.TaskList.route) },
+                onOpenAddTask = { navController.navigate(AppRoute.AddTask.route) },
+                onOpenNotifications = { navigateToTab(AppRoute.Notifications.route) }
+            )
+        }
+
+        composable(AppRoute.Profile.route) {
+            val activeState = if (authUiState.currentUser != null) {
+                authUiState
+            } else {
+                authUiState.copy(currentUser = defaultUser, providerType = AuthProviderType.GUEST)
+            }
+            ProfileScreen(
+                uiState = activeState,
+                onBack = { navController.popBackStack() },
+                onSignOut = performSignOut
+            )
+        }
+
+        composable(AppRoute.FirebaseServices.route) {
+            FirebaseServicesScreen(
                 onBack = { navController.popBackStack() }
             )
         }

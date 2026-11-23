@@ -28,6 +28,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -59,8 +60,11 @@ import com.uth.uthtodo.model.TaskItem
 import com.uth.uthtodo.model.UserProfile
 import com.uth.uthtodo.ui.theme.BackgroundWhite
 import com.uth.uthtodo.ui.theme.BorderLight
+import com.uth.uthtodo.ui.theme.DarkStudyBadgeBg
+import com.uth.uthtodo.ui.theme.DarkStudyBadgeText
 import com.uth.uthtodo.ui.theme.LifeBadgeBg
 import com.uth.uthtodo.ui.theme.LifeBadgeText
+import com.uth.uthtodo.ui.theme.LocalIsDarkTheme
 import com.uth.uthtodo.ui.theme.PrimaryBlue
 import com.uth.uthtodo.ui.theme.SoftBlueCard
 import com.uth.uthtodo.ui.theme.StudyBadgeBg
@@ -75,6 +79,7 @@ fun LoginScreen(
     uiState: AuthUiState,
     onEmailSignIn: (String, String) -> Unit,
     onEmailRegister: (String, String) -> Unit,
+    onForgotPassword: () -> Unit,
     onGoogleSignIn: () -> Unit,
     onGuestSignIn: () -> Unit
 ) {
@@ -170,6 +175,20 @@ fun LoginScreen(
                     unfocusedBorderColor = BorderLight
                 )
             )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = onForgotPassword) {
+                    Text(
+                        text = "Quên mật khẩu?",
+                        color = PrimaryBlue,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
 
             if (uiState.errorMessage != null) {
                 Spacer(modifier = Modifier.height(12.dp))
@@ -680,12 +699,14 @@ fun ProfileScreen(
     onSignOut: () -> Unit
 ) {
     val user = uiState.currentUser ?: return
+    val isDark = LocalIsDarkTheme.current
+    val colorScheme = MaterialTheme.colorScheme
     val weeklyCounts = listOf("T2" to 0.25f, "T3" to 0.65f, "T4" to 0.1f, "T5" to 0.1f, "T6" to 0.1f, "T7" to 0.1f, "CN" to 0.1f)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(SurfaceMuted)
+            .background(colorScheme.background)
             .statusBarsPadding()
             .navigationBarsPadding()
             .padding(horizontal = 20.dp, vertical = 14.dp),
@@ -700,7 +721,7 @@ fun ProfileScreen(
             Box(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = "< Trang chủ",
-                    color = PrimaryBlue,
+                    color = colorScheme.primary,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier
@@ -710,7 +731,7 @@ fun ProfileScreen(
                 )
                 Text(
                     text = "Hồ sơ",
-                    color = TextPrimary,
+                    color = colorScheme.onBackground,
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.align(Alignment.Center)
@@ -723,12 +744,12 @@ fun ProfileScreen(
                 modifier = Modifier
                     .size(84.dp)
                     .clip(CircleShape)
-                    .background(StudyBadgeBg),
+                    .background(if (isDark) DarkStudyBadgeBg else StudyBadgeBg),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = user.initials(),
-                    color = StudyBadgeText,
+                    color = if (isDark) DarkStudyBadgeText else StudyBadgeText,
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -740,7 +761,7 @@ fun ProfileScreen(
                 text = user.displayName,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary
+                color = colorScheme.onBackground
             )
 
             Spacer(modifier = Modifier.height(4.dp))
@@ -748,18 +769,18 @@ fun ProfileScreen(
             Text(
                 text = user.email,
                 fontSize = 13.sp,
-                color = TextSecondary
+                color = colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(10.dp))
 
             Surface(
                 shape = RoundedCornerShape(20.dp),
-                color = Color(0xFFDCFCE7)
+                color = if (isDark) Color(0xFF143324) else Color(0xFFDCFCE7)
             ) {
                 Text(
                     text = uiState.providerType.badgeText,
-                    color = Color(0xFF15803D),
+                    color = if (isDark) Color(0xFF4ADE80) else Color(0xFF15803D),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
@@ -782,8 +803,8 @@ fun ProfileScreen(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
-                color = Color.White,
-                shadowElevation = 1.dp
+                color = colorScheme.surface,
+                shadowElevation = if (isDark) 0.dp else 1.dp
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -797,12 +818,12 @@ fun ProfileScreen(
                             text = "Tuần này",
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 14.sp,
-                            color = TextPrimary
+                            color = colorScheme.onSurface
                         )
                         Text(
                             text = "Việc xong mỗi ngày",
                             fontSize = 12.sp,
-                            color = TextSecondary
+                            color = colorScheme.onSurfaceVariant
                         )
                     }
 
@@ -824,13 +845,13 @@ fun ProfileScreen(
                                         .height((48 * ratio).dp.coerceAtLeast(6.dp))
                                         .clip(RoundedCornerShape(6.dp))
                                         .background(
-                                            if (ratio > 0.2f) PrimaryBlue else SoftBlueCard
+                                            if (ratio > 0.2f) colorScheme.primary else colorScheme.primaryContainer
                                         )
                                 )
                                 Text(
                                     text = day,
                                     fontSize = 11.sp,
-                                    color = TextSecondary
+                                    color = colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -845,10 +866,10 @@ fun ProfileScreen(
                 .fillMaxWidth()
                 .height(50.dp),
             shape = RoundedCornerShape(14.dp),
-            border = BorderStroke(1.dp, Color(0xFFFECACA)),
+            border = BorderStroke(1.dp, if (isDark) Color(0xFF7F1D1D) else Color(0xFFFECACA)),
             colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = Color(0xFFFEF2F2),
-                contentColor = Color(0xFFDC2626)
+                containerColor = if (isDark) Color(0xFF2B1214) else Color(0xFFFEF2F2),
+                contentColor = if (isDark) Color(0xFFFCA5A5) else Color(0xFFDC2626)
             )
         ) {
             Image(
@@ -872,11 +893,13 @@ private fun ProfileStatCard(
     value: String,
     label: String
 ) {
+    val isDark = LocalIsDarkTheme.current
+    val colorScheme = MaterialTheme.colorScheme
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        color = Color.White,
-        shadowElevation = 1.dp
+        color = colorScheme.surface,
+        shadowElevation = if (isDark) 0.dp else 1.dp
     ) {
         Column(
             modifier = Modifier.padding(vertical = 14.dp, horizontal = 8.dp),
@@ -887,12 +910,12 @@ private fun ProfileStatCard(
                 text = value,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary
+                color = colorScheme.onSurface
             )
             Text(
                 text = label,
                 fontSize = 11.sp,
-                color = TextSecondary,
+                color = colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
         }
